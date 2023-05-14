@@ -1,1 +1,6 @@
-["ciao",123.213,true,false,null{"bella",12243.231,false,null,true}]
+{
+"prima chiave" : 5,
+"seconda chiave" : true,
+"terza chiave" : "una stringa",
+}
+
