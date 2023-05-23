@@ -35,17 +35,42 @@ json::json(){
 }
 
 json::~json(){
-    if(pimpl!=nullptr){
-        pEl pc = pimpl->head;
 
-        while (pc!=nullptr)
-        {
-            pc=pc->next;
-            delete pimpl->head;
-            pimpl->head = pc;
+    if (pimpl != nullptr) {
+        pEl pc = pimpl->head;
+        pEl next = nullptr;
+
+        while (pc != nullptr) {
+            next = pc->next;
+            delete pc;
+            pc = next;
         }
+
+        pimpl->head = nullptr;
+        pimpl->tail = nullptr;
         delete pimpl;
+        pimpl = nullptr;
     }
+
+
+
+    // if(pimpl!=nullptr){
+    //     pEl pc = pimpl->head;
+        
+    //     while (pc!=nullptr)
+    //     {
+    //         pc=pc->next;
+    //         delete pimpl->head;
+    //         pimpl->head = pc;
+    //     }
+
+    //     pimpl->head = nullptr;
+    //     pimpl->tail = nullptr;
+
+    //     delete pimpl;
+    //     pimpl=nullptr;
+    // }
+
 }
 
 //copy constructor
@@ -85,7 +110,7 @@ json& json::operator=(json const& j){
         pimpl->head=nullptr;
         pimpl->tail=nullptr;
 
-        push_front(j);
+        push_front(j); // push front in list di json
 
         // if(is_list()) push_front(j);
         // else insert(j.pimpl->head->dic);
@@ -105,10 +130,12 @@ json& json::operator=(json&& j){
 }
 
 bool json::is_dictionary() const{
+    if(pimpl->head==nullptr) return true;
     return !pimpl->head->dic.first.empty();
 }
 
 bool json::is_list() const{
+    // if(pimpl->head==nullptr) return true;
     return !is_dictionary();
 }
 
@@ -153,13 +180,26 @@ string const& json::get_string() const{
 }
 
 void json::set_list(){
-    pimpl->head->list.pimpl->head=nullptr;
-    pimpl->head->list.pimpl->tail=nullptr;
+    pEl n = new El;
+    n->next=nullptr;
+    n->list.pimpl->head=nullptr;
+    n->list.pimpl->tail=nullptr;
+
+    pimpl->head=n;
+    pimpl->tail=n;
+
 }
 
 void json::set_dictionary(){
-    pimpl->head->Dic.pimpl->head=nullptr;
-    pimpl->head->Dic.pimpl->tail=nullptr;
+    pEl n = new El;
+    n->next=nullptr;
+    n->Dic.pimpl->head=nullptr;
+    n->Dic.pimpl->tail=nullptr;
+
+    pimpl->head=n;
+    pimpl->tail=n;
+    // pimpl->head->Dic.pimpl->head=nullptr;
+    // pimpl->head->Dic.pimpl->tail=nullptr;
 }
 
 void json::set_string(string const& x){
@@ -230,12 +270,16 @@ void json::push_front(json const& j){
     
     if(this==&j) return ;
 
-    if(pimpl->tail!=nullptr)
-        pimpl->tail->next=j.pimpl->head;
-    else
-        pimpl->head=j.pimpl->head;
+    // pimpl->tail->list.pimpl->head;
 
-    pimpl->tail=j.pimpl->tail;
+    if(pimpl->tail->list.pimpl->tail!=nullptr)
+        pimpl->tail->list.pimpl->tail->next=j.pimpl->head;
+    else
+        pimpl->head->list.pimpl->head=j.pimpl->head;
+
+    pimpl->tail->list.pimpl->tail=j.pimpl->tail;
+
+    // if(pimpl->head->list.pimpl);
 
 }
 
@@ -246,10 +290,34 @@ void json::push_back(json const& j){
 void json::insert(std::pair<std::string, json> const& d){
 
     pEl n = new El;
-    n->dic = d;
-    n->next = pimpl->head;
-    pimpl->head= n;
-    
+    n->dic.first = d.first;
+    n->dic.second.set_list();
+    // n->next = nullptr;
+    n->dic.second.push_front(d.second);
+    // n->dic.second = d.second;
+    std::cout<<n->dic.first<<std::endl;
+
+    // json t;
+    // t.pimpl->head=n;
+    // t.pimpl->tail=n;
+    // in tutto questo non sto modificando un casso 
+    // if(this==&t) return ;
+
+    // pimpl->tail->list.pimpl->head;
+
+    if(pimpl->tail->Dic.pimpl->tail!=nullptr){
+        pimpl->tail->Dic.pimpl->tail->next=n;
+        // t.pimpl->head->dic.second.pimpl->head->list.pimpl->head->next=nullptr;//!wtf 
+        }
+    else
+        pimpl->head->Dic.pimpl->head=n;
+    pimpl->tail->Dic.pimpl->tail=n;
+
+    // if(pimpl->head!=nullptr) pimpl->tail->next=n;
+    // else 
+    //     pimpl->head=n;  
+    // pimpl->tail = n;
+    return;
 }
 
 
@@ -261,14 +329,14 @@ json get_lista(std::istream& is){
     // finchè non si chiude la lista
     json j;
     json j_tmp;
-    // j.set_list();
+    j.set_list();
     char p = 0;
     while(p!=']'){
         // is.putback(p);
         // cout<<"inside list"<<endl;
         if(p=='{'||p=='[') is.putback(p);
         j_tmp=E(is);
-        j.push_front(j_tmp);
+        j.push_front(j_tmp); // se ho una lista dentro una lista devo popolare list 
         // get_lista(is);
         if(is) p=is.peek(); // per peek deve essere valido
         else return j;
@@ -303,7 +371,7 @@ string dic_str(istream& is){
 json get_dictionary(istream& is){
     // legge un pair di key e El che può essere dicitionary e lista se 
     json d;
-    // j.set_dictionary();
+    d.set_dictionary();
     std::pair<string , json> El_dict;
     char p = 0;
     while(p!='}'){
@@ -397,10 +465,13 @@ json E(istream& is){
 
     }else if(p=='['){
         std::cout<<"--["<<'\n';
+        // j.set_list();
+        // j.push_front(move(get_lista(is)));
         j=get_lista(is);
         std::cout<<"--]"<<'\n';
     }else if(p=='{'){
         std::cout<<"--{"<<'\n';
+        // j.push_front(get_);
         j=get_dictionary(is);
         std::cout<<"--}"<<'\n';
     }else if(p!='"'){
@@ -430,8 +501,11 @@ istream& operator>>(istream& is, json& j){
     char p = 0;
     is >> p;
     if(p=='['){
-        j=get_lista(is);
+        j.set_list();
+        j.push_front(move(get_lista(is)));
+        // j=get_lista(is);
     }else if(p=='{'){
+        j.set_dictionary();
         j=get_dictionary(is);
     }
     return is;
