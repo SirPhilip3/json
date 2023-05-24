@@ -7,6 +7,7 @@ using namespace std;
 // };
 
 struct El{
+    bool i_num=false;
     double num;
 	int boo=-1;
 	std::string s;
@@ -35,7 +36,7 @@ json::json(){
 }
 
 json::~json(){
-
+//! openai
     if (pimpl != nullptr) {
         pEl pc = pimpl->head;
         pEl next = nullptr;
@@ -53,7 +54,7 @@ json::~json(){
     }
 
 
-
+//! originale
     // if(pimpl!=nullptr){
     //     pEl pc = pimpl->head;
         
@@ -110,7 +111,24 @@ json& json::operator=(json const& j){
         pimpl->head=nullptr;
         pimpl->tail=nullptr;
 
-        push_front(j); // push front in list di json
+        // if(pimpl->head==nullptr) push_front(j);
+        if(j.is_list()||j.is_bool()||j.is_null()||j.is_string()||j.is_number()){
+            push_front(j); // push front in list di json //! tmp da capire cambia per list e dictionary
+        }else {
+            // if(pimpl->tail->Dic.pimpl->tail!=nullptr)
+            //     pimpl->tail->Dic.pimpl->tail->next=j.pimpl->head;
+            // else
+            //     pimpl->head->Dic.pimpl->head=j.pimpl->head;
+
+            // pimpl->tail->Dic.pimpl->tail=j.pimpl->tail;
+
+            if(pimpl->tail!=nullptr)
+                pimpl->tail->next=j.pimpl->head;
+            else
+                pimpl->head=j.pimpl->head;
+
+            pimpl->tail=j.pimpl->tail;
+        }
 
         // if(is_list()) push_front(j);
         // else insert(j.pimpl->head->dic);
@@ -129,14 +147,18 @@ json& json::operator=(json&& j){
     return *this;
 }
 
+//! da ripensare is list e dictionary
 bool json::is_dictionary() const{
     if(pimpl->head==nullptr) return true;
     return !pimpl->head->dic.first.empty();
 }
 
 bool json::is_list() const{
-    // if(pimpl->head==nullptr) return true;
-    return !is_dictionary();
+    if(pimpl->head==nullptr) return true;
+    // if(pimpl->head->list.pimpl==nullptr) return false;
+    // if(pimpl->head->list.pimpl->head==nullptr) return false;
+
+    return pimpl->head->list.pimpl!=nullptr&&pimpl->head->list.pimpl->head!=nullptr; // se è stata inizializzata una lista allora è una lista 
 }
 
 bool json::is_string() const{
@@ -144,7 +166,7 @@ bool json::is_string() const{
 }
 
 bool json::is_number() const{
-    return !(is_string()||is_string()||is_bool()||is_dictionary()||is_list());
+    return pimpl->head->i_num;
 }
 
 bool json::is_bool() const{
@@ -240,6 +262,7 @@ void json::set_number(double x){
     pEl n = new El;
     n->next=nullptr;
     n->num=x;
+    n->i_num=true;
 
     pimpl->head=n;
     pimpl->tail=n;
@@ -291,9 +314,17 @@ void json::insert(std::pair<std::string, json> const& d){
 
     pEl n = new El;
     n->dic.first = d.first;
-    n->dic.second.set_list();
-    // n->next = nullptr;
-    n->dic.second.push_front(d.second);
+    if(d.second.is_list()||d.second.is_null()||d.second.is_bool()||d.second.is_string()||d.second.is_number()){
+        n->dic.second.set_list();//!tmp
+        // n->next = nullptr;
+        n->dic.second.push_front(d.second);//!tmp deve cambiare a senconda di lista o no
+    }else {
+        // std::cout<<"is disctionary "<<d.first<<std::endl;
+        n->dic.second.set_dictionary();
+        // devo solo aggiungere d.second
+        n->dic.second=d.second;
+    }
+
     // n->dic.second = d.second;
     std::cout<<n->dic.first<<std::endl;
 
@@ -334,9 +365,13 @@ json get_lista(std::istream& is){
     while(p!=']'){
         // is.putback(p);
         // cout<<"inside list"<<endl;
-        if(p=='{'||p=='[') is.putback(p);
-        j_tmp=E(is);
-        j.push_front(j_tmp); // se ho una lista dentro una lista devo popolare list 
+        if(p!=','){
+            if(p=='{'||p=='[') is.putback(p);
+            // j_tmp.~json();
+            j_tmp=E(is);
+            j.push_front(j_tmp); // se ho una lista dentro una lista devo popolare list 
+            // j.push_front(E(is));
+        }else is>>p;
         // get_lista(is);
         if(is) p=is.peek(); // per peek deve essere valido
         else return j;
@@ -378,12 +413,17 @@ json get_dictionary(istream& is){
         // is.putback(p);
         // leggi stringa poi leggi il valore legato a quella stringa
         // cout<<"inside dic"<<endl;
-        if(p=='{'||p=='[') is.putback(p);
-        El_dict.first = dic_str(is);
-        El_dict.second = E(is);
-        d.insert(El_dict);
-
-        if(is) p=is.peek();
+        if(p!=','){
+            if(p=='{'||p=='[') is.putback(p);
+            El_dict.first = dic_str(is);
+            El_dict.second = E(is);
+            d.insert(El_dict);
+        }else is>>p;// devo consumare ,
+        // is>>p;
+        // cout<<p<<" ,";
+        // is.putback(p);
+        // p=is.peek();
+        if(is) p=is.peek();// si ferma a , bho
         else return d;
         // get_dictionary(is);
     }
@@ -468,11 +508,13 @@ json E(istream& is){
         // j.set_list();
         // j.push_front(move(get_lista(is)));
         j=get_lista(is);
+        is>>p;
         std::cout<<"--]"<<'\n';
     }else if(p=='{'){
         std::cout<<"--{"<<'\n';
         // j.push_front(get_);
         j=get_dictionary(is);
+        is>>p;
         std::cout<<"--}"<<'\n';
     }else if(p!='"'){
         // o è null o è un buleano
