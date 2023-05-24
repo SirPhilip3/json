@@ -370,6 +370,8 @@ json get_lista(std::istream& is){
             // j_tmp.~json();
             j_tmp=E(is);
             j.push_front(j_tmp); // se ho una lista dentro una lista devo popolare list 
+            j_tmp.set_dictionary();
+            j_tmp.set_list();
             // j.push_front(E(is));
         }else is>>p;
         // get_lista(is);
@@ -409,6 +411,7 @@ json get_dictionary(istream& is){
     d.set_dictionary();
     std::pair<string , json> El_dict;
     char p = 0;
+
     while(p!='}'){
         // is.putback(p);
         // leggi stringa poi leggi il valore legato a quella stringa
@@ -417,7 +420,19 @@ json get_dictionary(istream& is){
             if(p=='{'||p=='[') is.putback(p);
             El_dict.first = dic_str(is);
             El_dict.second = E(is);
+            //! all'ultimo passsaggio el_dic viene eliminato e quindi casino alla fine 
+            //! stessa cosa per get_lista
             d.insert(El_dict);
+
+            //!fix
+            El_dict.second.set_dictionary();
+            El_dict.second.set_list();
+            // test soluzione
+
+            // string key = dic_str(is);
+            // json value = E(is);
+
+            // d.insert({key,value});
         }else is>>p;// devo consumare ,
         // is>>p;
         // cout<<p<<" ,";
@@ -556,5 +571,6 @@ istream& operator>>(istream& is, json& j){
 int main(){
     json j;
     cin>>j;
+    cout<<"end of stream";
     return 0;
 }
