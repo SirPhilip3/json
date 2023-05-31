@@ -37,40 +37,40 @@ json::json(){
 
 json::~json(){
 //! openai
-    if (pimpl != nullptr) {
-        pEl pc = pimpl->head;
-        pEl next = nullptr;
-
-        while (pc != nullptr) {
-            next = pc->next;
-            delete pc;
-            pc = next;
-        }
-
-        pimpl->head = nullptr;
-        pimpl->tail = nullptr;
-        delete pimpl;
-        pimpl = nullptr;
-    }
-
-
-//! originale
-    // if(pimpl!=nullptr){
+    // if (pimpl != nullptr) {
     //     pEl pc = pimpl->head;
-        
-    //     while (pc!=nullptr)
-    //     {
-    //         pc=pc->next;
-    //         delete pimpl->head;
-    //         pimpl->head = pc;
+    //     pEl next = nullptr;
+
+    //     while (pc != nullptr) {
+    //         next = pc->next;
+    //         delete pc;
+    //         pc = next;
     //     }
 
     //     pimpl->head = nullptr;
     //     pimpl->tail = nullptr;
-
     //     delete pimpl;
-    //     pimpl=nullptr;
+    //     pimpl = nullptr;
     // }
+
+
+//! originale
+    if(pimpl!=nullptr){
+        pEl pc = pimpl->head;
+        
+        while (pc!=nullptr)
+        {
+            pc=pc->next;
+            delete pimpl->head;
+            pimpl->head = pc;
+        }
+
+        pimpl->head = nullptr;
+        pimpl->tail = nullptr;
+
+        delete pimpl;
+        pimpl=nullptr;
+    }
 
 }
 
@@ -112,23 +112,36 @@ json& json::operator=(json const& j){
         pimpl->tail=nullptr;
 
         // if(pimpl->head==nullptr) push_front(j);
-        if(j.is_list()||j.is_bool()||j.is_null()||j.is_string()||j.is_number()){
-            push_front(j); // push front in list di json //! tmp da capire cambia per list e dictionary
-        }else {
-            // if(pimpl->tail->Dic.pimpl->tail!=nullptr)
-            //     pimpl->tail->Dic.pimpl->tail->next=j.pimpl->head;
-            // else
-            //     pimpl->head->Dic.pimpl->head=j.pimpl->head;
+        // if(j.is_list()||j.is_bool()||j.is_null()||j.is_string()||j.is_number()){
+        ////     if(pimpl->tail!=nullptr)
+        ////         pimpl->tail->next=j.pimpl->head;
+        ////     else
+        ////         pimpl->head=j.pimpl->head;
 
-            // pimpl->tail->Dic.pimpl->tail=j.pimpl->tail;
+        ////     pimpl->tail=j.pimpl->tail;
+        // push_front(j); // push front in list di json //! tmp da capire cambia per list e dictionary
+        // }else {
+        //    // if(pimpl->tail->Dic.pimpl->tail!=nullptr)
+        //    //     pimpl->tail->Dic.pimpl->tail->next=j.pimpl->head;
+        //    // else
+        //    //     pimpl->head->Dic.pimpl->head=j.pimpl->head;
 
-            if(pimpl->tail!=nullptr)
-                pimpl->tail->next=j.pimpl->head;
-            else
-                pimpl->head=j.pimpl->head;
+        //    // pimpl->tail->Dic.pimpl->tail=j.pimpl->tail;
 
-            pimpl->tail=j.pimpl->tail;
-        }
+        //     if(pimpl->tail!=nullptr)
+        //         pimpl->tail->next=j.pimpl->head;
+        //     else
+        //         pimpl->head=j.pimpl->head;
+
+        //     pimpl->tail=j.pimpl->tail;
+        // }
+
+        if(pimpl->tail!=nullptr) //! questo ramo non viene mai eseguito
+            pimpl->tail->next=j.pimpl->head;
+        else
+            pimpl->head=j.pimpl->head;
+
+        pimpl->tail=j.pimpl->tail;
 
         // if(is_list()) push_front(j);
         // else insert(j.pimpl->head->dic);
@@ -201,7 +214,22 @@ string const& json::get_string() const{
 
 }
 
+
+//! per ogni set dovrei eliminare lo sato del json 
 void json::set_list(){
+
+    // if(pimpl!=nullptr){
+    //     pEl pc = pimpl->head;
+        
+    //     while (pc!=nullptr)
+    //     {
+    //         pc=pc->next;
+    //         delete pimpl->head;
+    //         pimpl->head = pc;
+    //     }
+
+    // }
+
     pEl n = new El;
     n->next=nullptr;
     n->list.pimpl->head=nullptr;
@@ -210,9 +238,30 @@ void json::set_list(){
     pimpl->head=n;
     pimpl->tail=n;
 
+    //! n non posso eliminarlo
+
+    // pimpl->head = new El;
+    // pimpl->head->next=nullptr;
+    // pimpl->head->list.pimpl->head=nullptr;
+    // pimpl->head->list.pimpl->tail=nullptr;
+    // pimpl->tail=pimpl->head;
+
 }
 
 void json::set_dictionary(){
+
+    // if(pimpl!=nullptr){
+    //     pEl pc = pimpl->head;
+        
+    //     while (pc!=nullptr)
+    //     {
+    //         pc=pc->next;
+    //         delete pimpl->head;
+    //         pimpl->head = pc;
+    //     }
+
+    // }
+    
     pEl n = new El;
     n->next=nullptr;
     n->Dic.pimpl->head=nullptr;
@@ -220,19 +269,29 @@ void json::set_dictionary(){
 
     pimpl->head=n;
     pimpl->tail=n;
-    // pimpl->head->Dic.pimpl->head=nullptr;
-    // pimpl->head->Dic.pimpl->tail=nullptr;
+
 }
 
 void json::set_string(string const& x){
-    
+    //! json se lista pimpl alla head 
+    // if(pimpl!=nullptr){
+    //     pEl pc = pimpl->head;
+        
+    //     while (pc!=nullptr)
+    //     {
+    //         pc=pc->next;
+    //         delete pimpl->head;
+    //         pimpl->head = pc;
+    //     }
+
+    // }
+
     pEl n = new El;
     n->next=nullptr;
     n->s=x;
 
     pimpl->head=n;
     pimpl->tail=n;
-
 
     // if(pimpl->head==nullptr){
     //     pimpl->head=n;
@@ -243,6 +302,17 @@ void json::set_string(string const& x){
 
 void json::set_bool(bool x){
     
+    // if(pimpl!=nullptr){
+    //     pEl pc = pimpl->head;
+        
+    //     while (pc!=nullptr)
+    //     {
+    //         pc=pc->next;
+    //         delete pimpl->head;
+    //         pimpl->head = pc;
+    //     }
+    // }
+
     pEl n = new El;
     n->next=nullptr;
     n->boo=x;
@@ -259,6 +329,18 @@ void json::set_bool(bool x){
 
 void json::set_number(double x){
     
+    // if(pimpl!=nullptr){
+    //     pEl pc = pimpl->head;
+        
+    //     while (pc!=nullptr)
+    //     {
+    //         pc=pc->next;
+    //         delete pimpl->head;
+    //         pimpl->head = pc;
+    //     }
+
+    // }
+
     pEl n = new El;
     n->next=nullptr;
     n->num=x;
@@ -266,6 +348,7 @@ void json::set_number(double x){
 
     pimpl->head=n;
     pimpl->tail=n;
+
     // if(pimpl->head==nullptr){
     //     pimpl->head=n;
     // }
@@ -275,6 +358,18 @@ void json::set_number(double x){
 
 void json::set_null(){
  
+    // if(pimpl!=nullptr){
+    //     pEl pc = pimpl->head;
+        
+    //     while (pc!=nullptr)
+    //     {
+    //         pc=pc->next;
+    //         delete pimpl->head;
+    //         pimpl->head = pc;
+    //     }
+
+    // }
+
     pEl n = new El;
     n->next=nullptr;
     n->Null=true;
@@ -302,6 +397,8 @@ void json::push_front(json const& j){
 
     pimpl->tail->list.pimpl->tail=j.pimpl->tail;
 
+    // pimpl->tail->list.pimpl->tail->next=nullptr;
+
     // if(pimpl->head->list.pimpl);
 
 }
@@ -313,17 +410,19 @@ void json::push_back(json const& j){
 void json::insert(std::pair<std::string, json> const& d){
 
     pEl n = new El;
+    n->next=nullptr;
     n->dic.first = d.first;
-    if(d.second.is_list()||d.second.is_null()||d.second.is_bool()||d.second.is_string()||d.second.is_number()){
-        n->dic.second.set_list();//!tmp
-        // n->next = nullptr;
-        n->dic.second.push_front(d.second);//!tmp deve cambiare a senconda di lista o no
-    }else {
-        // std::cout<<"is disctionary "<<d.first<<std::endl;
-        n->dic.second.set_dictionary();
-        // devo solo aggiungere d.second
-        n->dic.second=d.second;
-    }
+    n->dic.second = d.second;
+    // if(d.second.is_list()||d.second.is_null()||d.second.is_bool()||d.second.is_string()||d.second.is_number()){
+    //     n->dic.second.set_list();//!tmp
+    //     // n->next = nullptr;
+    //     n->dic.second.push_front(d.second);//!tmp deve cambiare a senconda di lista o no
+    // }else {
+    //     // std::cout<<"is disctionary "<<d.first<<std::endl;
+    //     // n->dic.second.set_dictionary();
+    //     // devo solo aggiungere d.second
+    //     n->dic.second=d.second;
+    // }
 
     // n->dic.second = d.second;
     std::cout<<n->dic.first<<std::endl;
@@ -363,21 +462,25 @@ json get_lista(std::istream& is){
     j.set_list();
     char p = 0;
     while(p!=']'){
-        // is.putback(p);
-        // cout<<"inside list"<<endl;
         if(p!=','){
             if(p=='{'||p=='[') is.putback(p);
-            // j_tmp.~json();
             j_tmp=E(is);
             j.push_front(j_tmp); // se ho una lista dentro una lista devo popolare list 
-            j_tmp.set_dictionary();
             j_tmp.set_list();
-            // j.push_front(E(is));
+            // j.push_front(move(E(is)));
         }else is>>p;
         // get_lista(is);
+        
+        //! potrebbero essere inutili basta mettere a nullptr ma non posso accere a pimpl da metodo pubblico
+        // j_tmp.set_dictionary();
+        j_tmp.~json();
+
         if(is) p=is.peek(); // per peek deve essere valido
         else return j;
     }
+
+    // j_tmp.~json();
+
     return j;
 }
 
@@ -388,7 +491,6 @@ string dic_str(istream& is){
     is>>p;
     if(p=='"') {p=0;}
     while(p!='"'||is_acceptable){
-        // is_acceptable=false;
         is>>p;
         s+=p;
         if(p=='\\'){
@@ -413,8 +515,6 @@ json get_dictionary(istream& is){
     char p = 0;
 
     while(p!='}'){
-        // is.putback(p);
-        // leggi stringa poi leggi il valore legato a quella stringa
         // cout<<"inside dic"<<endl;
         if(p!=','){
             if(p=='{'||p=='[') is.putback(p);
@@ -424,24 +524,22 @@ json get_dictionary(istream& is){
             //! stessa cosa per get_lista
             d.insert(El_dict);
 
-            //!fix
             El_dict.second.set_dictionary();
-            El_dict.second.set_list();
-            // test soluzione
-
-            // string key = dic_str(is);
-            // json value = E(is);
-
             // d.insert({key,value});
         }else is>>p;// devo consumare ,
-        // is>>p;
-        // cout<<p<<" ,";
-        // is.putback(p);
-        // p=is.peek();
+
+        //!fix
+        //! non elimino la memoria
+
+        // El_dict.second.set_list();
+        El_dict.second.~json();
+
         if(is) p=is.peek();// si ferma a , bho
         else return d;
-        // get_dictionary(is);
     }
+
+    // El_dict.second.~json();
+
     return d;
 }
 
@@ -476,7 +574,7 @@ json strings(istream& is){
     // std::getline(is, s);// non va bene devo leggere ogni singolo char fino ad una " senza / davanti 
     s.erase(s.length()-1);
     std::cout<<"--"<<s<<'\n';
-    j.set_string(s);
+    j.set_string(s); // potrei chiamarlo 
     is.ignore(10, ',');// ignora il rest0 , spazi vuoti etc fino a ,
     return j;
 }
@@ -536,13 +634,11 @@ json E(istream& is){
         if (p=='n'){
             // j.push_front(null(is));
             j=null(is);
-
         } 
         else {
             is.putback(p);
             // j.push_front(boolean(is));
             j=boolean(is);
-
         }
     }else{
         // j.push_front(strings(is));
@@ -558,11 +654,11 @@ istream& operator>>(istream& is, json& j){
     char p = 0;
     is >> p;
     if(p=='['){
-        j.set_list();
-        j.push_front(move(get_lista(is)));
-        // j=get_lista(is);
+        // j.set_list();
+        // j.push_front(move(get_lista(is)));
+        j=get_lista(is);
     }else if(p=='{'){
-        j.set_dictionary();
+        // j.set_dictionary();
         j=get_dictionary(is);
     }
     return is;
@@ -571,6 +667,6 @@ istream& operator>>(istream& is, json& j){
 int main(){
     json j;
     cin>>j;
-    cout<<"end of stream";
+    cout<<"end of stream \n";
     return 0;
 }

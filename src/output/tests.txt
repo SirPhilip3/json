@@ -1,0 +1,14 @@
+{"d":"cio",}
+[12,"xio",true,]
+{"d":{"k":67,"l":null,},}
+{"a":12,"d":{"k":67,"l":null,},}
+{"a":12,"d":{"k":67,"l":null,},"r":[12,true,false,],"po":true,}
+{"r":[12,true,false,],"po":true,}
+{"d":{"k":67,"pd":1111,},"s":968,}
+
+{
+    "prima chiave" : 5,
+    "seconda chiave" : [4.12,2,true,],
+    "terza chiave" : "una stringa",
+    "quarta chiave" : {"a" : 4, "b" : [4,5,],},
+}
