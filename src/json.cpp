@@ -425,7 +425,8 @@ void json::insert(std::pair<std::string, json> const& d){
     // }
 
     // n->dic.second = d.second;
-    std::cout<<n->dic.first<<std::endl;
+    //?
+    // std::cout<<n->dic.first<<std::endl;
 
     // json t;
     // t.pimpl->head=n;
@@ -460,7 +461,7 @@ json get_lista(std::istream& is){
     json j;
     json j_tmp;
     j.set_list();
-    char p = 0;
+    char p = is.peek();
     while(p!=']'){
         if(p!=','){
             if(p=='{'||p=='[') is.putback(p);
@@ -489,9 +490,10 @@ string dic_str(istream& is){
     char p=0;
     bool is_acceptable=false;
     is>>p;
+    if(p=='{') {is>>p;}
     if(p=='"') {p=0;}
     while(p!='"'||is_acceptable){
-        is>>p;
+        is>>std::noskipws>>p;
         s+=p;
         if(p=='\\'){
             if(is.peek()=='"'){
@@ -502,6 +504,8 @@ string dic_str(istream& is){
     }
     // std::getline(is, s);// non va bene devo leggere ogni singolo char fino ad una " senza / davanti 
     s.erase(s.length()-1);
+    //?
+    is>>std::skipws;
     std::cout<<"--"<<s<<'\n';
     is.ignore(10, ':');// ignora il rest0 , spazi vuoti etc fino a ,
     return s;
@@ -512,12 +516,12 @@ json get_dictionary(istream& is){
     json d;
     d.set_dictionary();
     std::pair<string , json> El_dict;
-    char p = 0;
+    char p = is.peek();
 
     while(p!='}'){
         // cout<<"inside dic"<<endl;
         if(p!=','){
-            if(p=='{'||p=='[') is.putback(p);
+            // if(p=='{'||p=='[') is.putback(p);
             El_dict.first = dic_str(is);
             El_dict.second = E(is);
             //! all'ultimo passsaggio el_dic viene eliminato e quindi casino alla fine 
@@ -528,9 +532,6 @@ json get_dictionary(istream& is){
             // d.insert({key,value});
         }else is>>p;// devo consumare ,
 
-        //!fix
-        //! non elimino la memoria
-
         // El_dict.second.set_list();
         El_dict.second.~json();
 
@@ -539,6 +540,9 @@ json get_dictionary(istream& is){
     }
 
     // El_dict.second.~json();
+
+    // char n = is.peek();
+    // if(n=='}'||n==']') return d;
 
     return d;
 }
@@ -549,9 +553,13 @@ json number(istream& is){
     json j;
     double num = 0;
     is>>num;
-    std::cout<<num<<" --num"<<'\n';
-    is.ignore(10, ','); // ignora il rest0 , spazi vuoti etc fino a ,
+    //?
+    std::cout<<num<<" --num \n";
     j.set_number(num);
+
+    char n = is.peek();
+    if(n=='}'||n==']') return j;
+    is.ignore(10, ','); // ignora il rest0 , spazi vuoti etc fino a ,
     return j;
 }
 
@@ -562,7 +570,7 @@ json strings(istream& is){
     bool is_acceptable=false;
     while(p!='"'||is_acceptable){
         // is_acceptable=false;
-        is>>p;
+        is>>std::noskipws>>p;
         s+=p;
         if(p=='\\'){
             if(is.peek()=='"'){
@@ -573,17 +581,28 @@ json strings(istream& is){
     }
     // std::getline(is, s);// non va bene devo leggere ogni singolo char fino ad una " senza / davanti 
     s.erase(s.length()-1);
+    //?
+    is>>std::skipws;
     std::cout<<"--"<<s<<'\n';
-    j.set_string(s); // potrei chiamarlo 
+    j.set_string(s); // potrei chiamarlo
+    char n = is.peek();
+    if(n=='}'||n==']') return j;
     is.ignore(10, ',');// ignora il rest0 , spazi vuoti etc fino a ,
     return j;
 }
 
 json null(istream& is){
-    std::cout<<"--null"<<'\n'; // skippo alla prossima riga
-    is.ignore(40,','); // ignoro i prossimi char che saranno la critta null e passo alla prossima linea
+    //?
+    std::cout<<"--null \n"; // skippo alla prossima riga
+    // ignoro i prossimi char che saranno la critta null e passo alla prossima linea
     json j;
     j.set_null();
+    //!devo leggere tutto null e  erificare se è scritto bene 
+    //!potrei ocnsiderare null anche lo spazio vuoto
+    is.ignore(3);
+    char n = is.peek();
+    if(n=='}'||n==']') return j;
+    is.ignore(40,','); 
     return j;
 }
 
@@ -593,15 +612,22 @@ json boolean(istream& is){
     is>>p;
     // use is.boolalpha
     if(p=='t'){
-        std::cout<<"--true"<<'\n';
+        //?
+        std::cout<<"--true \n";
         j.set_bool(true);
-        is.ignore(40,',');// ignora il rest0 , spazi vuoti etc fino a ,
+        is.ignore(3);// ignora il rest0 , spazi vuoti etc fino a ,
     } 
     else if(p=='f'){
-        std::cout<<"--false"<<'\n';
+        //?
+        std::cout<<"--false \n";
         j.set_bool(false);
-        is.ignore(50, ',');// ignora il rest0 , spazi vuoti etc fino a ,
+        is.ignore(4);// ignora il rest0 , spazi vuoti etc fino a ,
     }
+    //!devo leggere tutto true o false e  erificare se è scritto bene 
+    //!potrei ocnsiderare true o false anche lo spazio vuoto
+    char n = is.peek();
+    if(n=='}'||n==']') return j;
+    is.ignore(50, ',');
     return j;
 }
 
@@ -617,18 +643,22 @@ json E(istream& is){
         j=number(is);
 
     }else if(p=='['){
-        std::cout<<"--["<<'\n';
+        //?
+        std::cout<<"--[ \n";
         // j.set_list();
         // j.push_front(move(get_lista(is)));
         j=get_lista(is);
         is>>p;
-        std::cout<<"--]"<<'\n';
+        //?
+        std::cout<<"--] \n";
     }else if(p=='{'){
-        std::cout<<"--{"<<'\n';
+        //?
+        std::cout<<"--{ \n";
         // j.push_front(get_);
         j=get_dictionary(is);
         is>>p;
-        std::cout<<"--}"<<'\n';
+        //?
+        std::cout<<"--} \n";
     }else if(p!='"'){
         // o è null o è un buleano
         if (p=='n'){
@@ -661,12 +691,15 @@ istream& operator>>(istream& is, json& j){
         // j.set_dictionary();
         j=get_dictionary(is);
     }
+    //?
+    cout<<"end of stream \n";
     return is;
 }
 
 int main(){
     json j;
     cin>>j;
+    //?
     cout<<"end of stream \n";
     return 0;
 }
