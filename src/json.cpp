@@ -2,19 +2,15 @@
 
 using namespace std;
 
-// struct Dict{
-//     Dict* next;
-// };
-
 struct El{
     bool i_num=false;
     double num;
 	int boo=-1;
 	std::string s;
-    bool Null=false;//? valore nullo
-    std::pair<std::string, json> dic; //dictionary
+    bool Null=true;
+    std::pair<std::string, json> dic;
 
-    json list; // la lista è un json
+    json list; 
     json Dic;
 
     El* next;
@@ -25,7 +21,6 @@ typedef El* pEl;
 struct json::impl{
     pEl head;
     pEl tail;
-    // leggere un elemento json basta append alla fine
 };
 
 // default constructor
@@ -36,25 +31,7 @@ json::json(){
 }
 
 json::~json(){
-//! openai
-    // if (pimpl != nullptr) {
-    //     pEl pc = pimpl->head;
-    //     pEl next = nullptr;
 
-    //     while (pc != nullptr) {
-    //         next = pc->next;
-    //         delete pc;
-    //         pc = next;
-    //     }
-
-    //     pimpl->head = nullptr;
-    //     pimpl->tail = nullptr;
-    //     delete pimpl;
-    //     pimpl = nullptr;
-    // }
-
-
-//! originale
     if(pimpl!=nullptr){
         pEl pc = pimpl->head;
         
@@ -111,6 +88,9 @@ json& json::operator=(json const& j){
         pimpl->head=nullptr;
         pimpl->tail=nullptr;
 
+        // if(j.is_dictionary()) set_dictionary();
+        // else set_list();
+
         // if(pimpl->head==nullptr) push_front(j);
         // if(j.is_list()||j.is_bool()||j.is_null()||j.is_string()||j.is_number()){
         ////     if(pimpl->tail!=nullptr)
@@ -163,15 +143,12 @@ json& json::operator=(json&& j){
 //! da ripensare is list e dictionary
 bool json::is_dictionary() const{
     if(pimpl->head==nullptr) return true;
-    return !pimpl->head->dic.first.empty();
+    return pimpl->head->Dic.pimpl!=nullptr&&pimpl->head->Dic.pimpl->head!=nullptr;
 }
 
 bool json::is_list() const{
     if(pimpl->head==nullptr) return true;
-    // if(pimpl->head->list.pimpl==nullptr) return false;
-    // if(pimpl->head->list.pimpl->head==nullptr) return false;
-
-    return pimpl->head->list.pimpl!=nullptr&&pimpl->head->list.pimpl->head!=nullptr; // se è stata inizializzata una lista allora è una lista 
+    return pimpl->head->list.pimpl!=nullptr&&pimpl->head->list.pimpl->head!=nullptr;
 }
 
 bool json::is_string() const{
@@ -191,26 +168,73 @@ bool json::is_null() const{
 }
 
 double& json::get_number(){
-
+    if (is_number()){
+        return pimpl->head->num;
+    }else cout<<"no number found \n";
 }
 
 double const& json::get_number() const{
-
+    if (is_number()){
+        return pimpl->head->num;
+    }else cout<<"no number found \n";
 }
 
 bool& json::get_bool(){
-
+    if (is_bool()){
+        return (bool&)pimpl->head->boo;
+    }else cout<<"no bool found \n";
 }
 
 bool const& json::get_bool() const{
-
+    if (is_bool()){
+        return (bool&)pimpl->head->boo;
+    }else cout<<"no bool found \n";
 }
 
 string& json::get_string(){
-
+    if(is_string()){
+        return pimpl->head->s;
+    }else cout<<"no string found \n";
 }
 
 string const& json::get_string() const{
+    if(is_string()){
+        return pimpl->head->s;
+    }else cout<<"no string found \n";
+}
+
+//!
+json const& json::operator[](std::string const& s) const{
+    if(is_dictionary()){
+        pEl tmp = pimpl->head->Dic.pimpl->head;
+        bool found = false;
+        while (tmp != nullptr&&!found)
+        {
+            if(tmp->dic.first==s) {return tmp->dic.second; found=true;}
+            tmp=tmp->next;           
+        }
+    }else cout<<"not a dictionary \n";
+
+}
+
+//!
+json& json::operator[](std::string const& s){
+
+    if(is_dictionary()){
+
+        pEl tmp = pimpl->head->Dic.pimpl->head;
+        bool found = false;
+        while (tmp != nullptr&&!found)
+        {
+            if(tmp->dic.first==s) {found=true; return tmp->dic.second;}
+            tmp=tmp->next;           
+        }
+
+        pair<std::string, json> p;
+        p.first=s; 
+        insert(p);
+
+    }else cout<<"not a dictionary \n";
 
 }
 
@@ -234,6 +258,7 @@ void json::set_list(){
     n->next=nullptr;
     n->list.pimpl->head=nullptr;
     n->list.pimpl->tail=nullptr;
+    n->Null=false;
 
     pimpl->head=n;
     pimpl->tail=n;
@@ -266,6 +291,7 @@ void json::set_dictionary(){
     n->next=nullptr;
     n->Dic.pimpl->head=nullptr;
     n->Dic.pimpl->tail=nullptr;
+    n->Null=false;
 
     pimpl->head=n;
     pimpl->tail=n;
@@ -289,6 +315,7 @@ void json::set_string(string const& x){
     pEl n = new El;
     n->next=nullptr;
     n->s=x;
+    n->Null=false;
 
     pimpl->head=n;
     pimpl->tail=n;
@@ -316,6 +343,7 @@ void json::set_bool(bool x){
     pEl n = new El;
     n->next=nullptr;
     n->boo=x;
+    n->Null=false;
 
     pimpl->head=n;
     pimpl->tail=n;
@@ -345,6 +373,7 @@ void json::set_number(double x){
     n->next=nullptr;
     n->num=x;
     n->i_num=true;
+    n->Null=false;
 
     pimpl->head=n;
     pimpl->tail=n;
@@ -388,18 +417,12 @@ void json::push_front(json const& j){
     
     if(this==&j) return ;
 
-    // pimpl->tail->list.pimpl->head;
-
     if(pimpl->tail->list.pimpl->tail!=nullptr)
         pimpl->tail->list.pimpl->tail->next=j.pimpl->head;
     else
         pimpl->head->list.pimpl->head=j.pimpl->head;
 
     pimpl->tail->list.pimpl->tail=j.pimpl->tail;
-
-    // pimpl->tail->list.pimpl->tail->next=nullptr;
-
-    // if(pimpl->head->list.pimpl);
 
 }
 
@@ -438,17 +461,10 @@ void json::insert(std::pair<std::string, json> const& d){
 
     if(pimpl->tail->Dic.pimpl->tail!=nullptr){
         pimpl->tail->Dic.pimpl->tail->next=n;
-        // t.pimpl->head->dic.second.pimpl->head->list.pimpl->head->next=nullptr;//!wtf 
         }
     else
         pimpl->head->Dic.pimpl->head=n;
     pimpl->tail->Dic.pimpl->tail=n;
-
-    // if(pimpl->head!=nullptr) pimpl->tail->next=n;
-    // else 
-    //     pimpl->head=n;  
-    // pimpl->tail = n;
-    return;
 }
 
 
@@ -461,26 +477,30 @@ json get_lista(std::istream& is){
     json j;
     json j_tmp;
     j.set_list();
-    char p = is.peek();
+    char p=is.peek();
+    // is>>p;
     while(p!=']'){
+
+        if(p=='\n') {is.ignore(1,'\n'); p=is.peek();}
+        if(p==']') return j;
+
         if(p!=','){
-            if(p=='{'||p=='[') is.putback(p);
+            if(p=='{'||p=='[') is.putback(p); //! loops with p = is.peek and with [[...]]
             j_tmp=E(is);
             j.push_front(j_tmp); // se ho una lista dentro una lista devo popolare list 
-            j_tmp.set_list();
+            j_tmp.set_list();// to decuple j_tmp from E
             // j.push_front(move(E(is)));
         }else is>>p;
         // get_lista(is);
         
         //! potrebbero essere inutili basta mettere a nullptr ma non posso accere a pimpl da metodo pubblico
         // j_tmp.set_dictionary();
+
         j_tmp.~json();
 
         if(is) p=is.peek(); // per peek deve essere valido
         else return j;
     }
-
-    // j_tmp.~json();
 
     return j;
 }
@@ -493,6 +513,10 @@ string dic_str(istream& is){
     if(p=='{') {is>>p;}
     if(p=='"') {p=0;}
     while(p!='"'||is_acceptable){
+
+        // if(p=='\n') {is.ignore(1,'\n'); p=is.peek();}
+        // if(p=='}') return s;
+
         is>>std::noskipws>>p;
         s+=p;
         if(p=='\\'){
@@ -502,12 +526,13 @@ string dic_str(istream& is){
         }
         if(p=='"'&&is_acceptable) {is_acceptable=false; p=0;}
     }
+    
     // std::getline(is, s);// non va bene devo leggere ogni singolo char fino ad una " senza / davanti 
     s.erase(s.length()-1);
     //?
     is>>std::skipws;
     std::cout<<"--"<<s<<'\n';
-    is.ignore(10, ':');// ignora il rest0 , spazi vuoti etc fino a ,
+    is.ignore(std::numeric_limits<std::streamsize>::max(), ':');// ignora il rest0 , spazi vuoti etc fino a ,
     return s;
 }
 
@@ -520,6 +545,10 @@ json get_dictionary(istream& is){
 
     while(p!='}'){
         // cout<<"inside dic"<<endl;
+
+        if(p=='\n') {is.ignore(1,'\n'); p=is.peek();}
+        if(p=='}') return d;
+
         if(p!=','){
             // if(p=='{'||p=='[') is.putback(p);
             El_dict.first = dic_str(is);
@@ -535,7 +564,7 @@ json get_dictionary(istream& is){
         // El_dict.second.set_list();
         El_dict.second.~json();
 
-        if(is) p=is.peek();// si ferma a , bho
+        if(is) p=(is>>std::ws).peek();// si ferma a , bho
         else return d;
     }
 
@@ -556,10 +585,13 @@ json number(istream& is){
     //?
     std::cout<<num<<" --num \n";
     j.set_number(num);
-
-    char n = is.peek();
+    // is>>std::skipws;
+    char n = (is>>std::ws).peek();
+    // is>>std::skipws;
+    if(n=='\n') {is.ignore(1, '\n'); n=is.peek();}
     if(n=='}'||n==']') return j;
-    is.ignore(10, ','); // ignora il rest0 , spazi vuoti etc fino a ,
+    // else if(n!=',') throw json_exception{"unexpected caracter after number"}; //!ci sono altri caratteri che non sono ammessi
+    is.ignore(std::numeric_limits<std::streamsize>::max(), ','); // ignora il rest0 , spazi vuoti etc fino a ,
     return j;
 }
 
@@ -585,9 +617,10 @@ json strings(istream& is){
     is>>std::skipws;
     std::cout<<"--"<<s<<'\n';
     j.set_string(s); // potrei chiamarlo
-    char n = is.peek();
+    char n = (is>>std::ws).peek();
+    if(n=='\n') {is.ignore(1, '\n'); n=is.peek();}
     if(n=='}'||n==']') return j;
-    is.ignore(10, ',');// ignora il rest0 , spazi vuoti etc fino a ,
+    is.ignore(std::numeric_limits<std::streamsize>::max(), ',');// ignora il rest0 , spazi vuoti etc fino a ,
     return j;
 }
 
@@ -599,10 +632,12 @@ json null(istream& is){
     j.set_null();
     //!devo leggere tutto null e  erificare se è scritto bene 
     //!potrei ocnsiderare null anche lo spazio vuoto
-    is.ignore(3);
-    char n = is.peek();
+    // is>>std::skipws;
+    char n = (is>>std::ws).peek();
+    if(n=='u') is.ignore(3);
+    if(n=='\n') {is.ignore(1, '\n'); n=is.peek();}
     if(n=='}'||n==']') return j;
-    is.ignore(40,','); 
+    is.ignore(std::numeric_limits<std::streamsize>::max(),','); 
     return j;
 }
 
@@ -615,19 +650,19 @@ json boolean(istream& is){
         //?
         std::cout<<"--true \n";
         j.set_bool(true);
-        is.ignore(3);// ignora il rest0 , spazi vuoti etc fino a ,
+        is.ignore(3);
     } 
     else if(p=='f'){
         //?
         std::cout<<"--false \n";
         j.set_bool(false);
-        is.ignore(4);// ignora il rest0 , spazi vuoti etc fino a ,
+        is.ignore(4);
     }
-    //!devo leggere tutto true o false e  erificare se è scritto bene 
-    //!potrei ocnsiderare true o false anche lo spazio vuoto
-    char n = is.peek();
+
+    char n = (is>>std::ws).peek();
+    if(n=='\n') {is.ignore(1, '\n'); n=is.peek();}
     if(n=='}'||n==']') return j;
-    is.ignore(50, ',');
+    is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
     return j;
 }
 
@@ -636,11 +671,14 @@ json E(istream& is){
     char p=0;
     json j;
     is>>p;
-    if(p=='\n') { is>>p;}
+    if(p=='\n') {is>>p;}
+    // if(p==']'||p=='}') {j.set_null(); return j;}
     if(p>='0' && p<='9'){
         is.putback(p);
         // j.push_front(number(is));
-        j=number(is);
+        // try{
+            j=number(is);
+        // } catch (json_exception no_char) {cout<<"execption detected : "<<no_char.msg<<endl;} 
 
     }else if(p=='['){
         //?
@@ -701,5 +739,14 @@ int main(){
     cin>>j;
     //?
     cout<<"end of stream \n";
+
+    json k;
+    // k.set_list();
+    // k.set_dictionary();
+    k=j["cio"];
+
+    // double a = j.get_number();
+    // cout<<a;
+
     return 0;
 }
