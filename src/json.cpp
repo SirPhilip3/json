@@ -2,6 +2,8 @@
 
 using namespace std;
 
+//? STRUCT
+
 struct El{
     bool i_num=false;
     double num;
@@ -13,7 +15,7 @@ struct El{
     json list; 
     json Dic;
 
-    El* next;
+    El* next = nullptr;
 };
 
 typedef El* pEl;
@@ -23,6 +25,8 @@ struct json::impl{
     pEl tail;
 };
 
+//? CONSTRUCTOR / DESTRUCTOR
+
 // default constructor
 json::json(){
     pimpl = new impl;
@@ -30,6 +34,7 @@ json::json(){
     pimpl->tail=nullptr;
 }
 
+//destructor
 json::~json(){
 
     if(pimpl!=nullptr){
@@ -41,12 +46,12 @@ json::~json(){
             delete pimpl->head;
             pimpl->head = pc;
         }
-
+        
         pimpl->head = nullptr;
         pimpl->tail = nullptr;
 
         delete pimpl;
-        pimpl=nullptr;
+        pimpl = nullptr;
     }
 
 }
@@ -62,7 +67,7 @@ json::json(json const& j){
     while (pc!=nullptr)
     {
         if(j.is_list()){
-            set_list();
+            // set_list(); //? potrebbe essere inutile
             push_back(pc->list);
         }else{
             set_dictionary();
@@ -73,11 +78,26 @@ json::json(json const& j){
     
 }
 
+//? MOVE SEMANTICS
+
 // move constructor
 json::json(json&& j){
     *this=move(j);
 }
 
+//move assignment operator
+json& json::operator=(json&& j){
+    if(this!=&j){
+        delete pimpl;
+        pimpl = j.pimpl;
+        j.pimpl = nullptr;
+    }
+    return *this;
+}
+
+//? OPERATORS
+
+//copy assignment operator
 json& json::operator=(json const& j){
 
     if(this != &j){
@@ -94,7 +114,9 @@ json& json::operator=(json const& j){
         pimpl->tail=nullptr;
 
         pEl current = j.pimpl->head;
+
         while (current != nullptr) {
+
             pEl newNode = new El;
             newNode->i_num = current->i_num;
             newNode->num = current->num;
@@ -105,7 +127,6 @@ json& json::operator=(json const& j){
             newNode->list = current->list;
             newNode->Dic = current->Dic;
             newNode->next = nullptr;
-
 
             if(pimpl->tail!=nullptr){
                 pimpl->tail->next = newNode;
@@ -122,17 +143,8 @@ json& json::operator=(json const& j){
 
 }
 
-//?move semantic
-json& json::operator=(json&& j){
-    if(this!=&j){
-        delete pimpl;
-        pimpl = j.pimpl;
-        j.pimpl = nullptr;
-    }
-    return *this;
-}
+//? TIPO DI JSON
 
-//! da ripensare is list e dictionary
 bool json::is_dictionary() const{
     if(pimpl->head==nullptr) return true;
     return pimpl->head->Dic.pimpl!=nullptr&&pimpl->head->Dic.pimpl->head!=nullptr;
@@ -148,6 +160,7 @@ bool json::is_string() const{
 }
 
 bool json::is_number() const{
+    if(this==nullptr) return false;
     return pimpl->head->i_num;
 }
 
@@ -205,9 +218,10 @@ json const& json::operator[](std::string const& s) const{
         bool found = false;
         while (tmp != nullptr&&!found)
         {
-            if(tmp->dic.first==s) {return tmp->dic.second; found=true;}
+            if(tmp->dic.first==s) {found=true; return tmp->dic.second;}
             tmp=tmp->next;           
         }
+
     }else cout<<"not a dictionary \n";
 
 }
@@ -237,8 +251,114 @@ json& json::operator[](std::string const& s){
 
 }
 
+//? ITERATORS
 
-void json::set_list(){
+// list iterator
+struct json::list_iterator{
+
+    using iterator_category=std::forward_iterator_tag;
+    using value_type = json;
+    using pointer = json*;
+    using reference = json&;
+
+    list_iterator(pEl ptr) : m_ptr(ptr){}
+
+    reference operator*() const; // operator dereference 
+    pointer operator->() const; // useful for structs
+    // const because they do not modify the pointer
+    list_iterator& operator++(); // prefix ++
+    list_iterator operator++(int /*dummy*/); // postfix ++
+    bool operator==(list_iterator const& rhs) const;
+    bool operator!=(list_iterator const& rhs) const;
+
+    private :
+        pEl m_ptr;
+
+};
+
+json::list_iterator json::begin_list(){
+
+    return{pimpl->head};
+
+}
+
+json::list_iterator json::end_list(){
+
+    return{pimpl->tail->list.pimpl->tail->next};
+
+}
+
+bool json::list_iterator::operator==(list_iterator const& rhs) const{
+
+    return m_ptr == rhs.m_ptr;
+
+}
+
+bool json::list_iterator::operator!=(list_iterator const& rhs) const{
+
+    return !(*this==rhs);
+
+}
+
+json::list_iterator& json::list_iterator::operator++(){
+
+    m_ptr = m_ptr->list.pimpl->head->next;
+    return *this;
+
+}
+
+json::list_iterator json::list_iterator::operator++(int /*dummy*/){
+
+    list_iterator tmp = *this;
+    m_ptr = m_ptr->next;
+    return tmp;
+
+}
+
+json::list_iterator::reference json::list_iterator::operator*() const{
+
+    return m_ptr->list;    
+
+}
+
+
+json::list_iterator::pointer json::list_iterator::operator->() const{
+
+    return &(m_ptr->list);
+
+}
+
+//const list iterator
+struct json::const_list_iterator{
+    
+    using iterator_category=std::bidirectional_iterator_tag;
+    using value_type = const json;
+    using pointer = json const*;
+    using reference = json const&;
+
+    const_list_iterator(pEl ptr) : m_ptr(ptr){}
+
+    private :
+        El const* m_ptr;
+
+};
+
+json::const_list_iterator json::begin_list() const{
+
+    return{pimpl->head->list.pimpl->head};
+
+}
+
+json::const_list_iterator json::end_list() const{
+
+    return{pimpl->tail->list.pimpl->tail->next};
+
+}
+
+//? SETTING
+//! TUTTI I SET DANNO PROBLEMI DI LEAKS DERIVANTE DA EL()
+
+void json::set_list(){//! LEACKS
 
     if(pimpl!=nullptr){
         pEl pc = pimpl->head;
@@ -252,10 +372,10 @@ void json::set_list(){
 
     }
 
-    pimpl->head = nullptr;
-    pimpl->tail = nullptr;
+    // pimpl->head = nullptr;
+    // pimpl->tail = nullptr;
 
-    pEl n = new El;
+    pEl n = new El; //! leacks
     n->next=nullptr;
     // n->list.pimpl->head=nullptr;
     // n->list.pimpl->tail=nullptr;
@@ -280,8 +400,8 @@ void json::set_dictionary(){
 
     }
     
-    pimpl->head = nullptr;
-    pimpl->tail = nullptr;
+    // pimpl->head = nullptr;
+    // pimpl->tail = nullptr;
 
     pEl n = new El;
     n->next=nullptr;
@@ -308,8 +428,8 @@ void json::set_string(string const& x){
 
     }
 
-    pimpl->head = nullptr;
-    pimpl->tail = nullptr;
+    // pimpl->head = nullptr;
+    // pimpl->tail = nullptr;
 
     pEl n = new El;
     n->next=nullptr;
@@ -335,8 +455,8 @@ void json::set_bool(bool x){
         }
     }
 
-    pimpl->head = nullptr;
-    pimpl->tail = nullptr;
+    // pimpl->head = nullptr;
+    // pimpl->tail = nullptr;
 
     pEl n = new El;
     n->next=nullptr;
@@ -351,15 +471,19 @@ void json::set_bool(bool x){
 
 void json::set_number(double x){
     
-    pEl pc = pimpl->head;
-    while (pc != nullptr) {
-        pEl next = pc->next;
-        delete pc;
-        pc = next;
+    if(pimpl!=nullptr){
+        pEl pc = pimpl->head;
+        
+        while (pc!=nullptr)
+        {
+            pc=pc->next;
+            delete pimpl->head;
+            pimpl->head = pc;
+        }
     }
 
-    pimpl->head = nullptr;
-    pimpl->tail = nullptr;
+    // pimpl->head = nullptr;
+    // pimpl->tail = nullptr;
 
     pEl n = new El;
     n->next = nullptr;
@@ -386,8 +510,8 @@ void json::set_null(){
 
     }
 
-    pimpl->head = nullptr;
-    pimpl->tail = nullptr;
+    // pimpl->head = nullptr;
+    // pimpl->tail = nullptr;
 
     pEl n = new El;
     n->next=nullptr;
@@ -399,10 +523,12 @@ void json::set_null(){
 }
 
 
+//push_front 
+// NOT USED FOR NOW
 void json::push_front(json const& j){ // equivale a prepend
     
     pEl newNode = new El;
-    newNode->list = j;
+    newNode->list = j;//! shallow copy
     newNode->next = pimpl->head;
 
     if (pimpl->head == nullptr) {
@@ -412,10 +538,11 @@ void json::push_front(json const& j){ // equivale a prepend
 
 }
 
+
+//push_back
 void json::push_back(json const& j){ // alla fine equivale a append
 
     pEl newNode = new El;
-
     newNode->i_num = j.pimpl->head->i_num;
     newNode->num = j.pimpl->head->num;
     newNode->boo = j.pimpl->head->boo;
@@ -427,6 +554,8 @@ void json::push_back(json const& j){ // alla fine equivale a append
 
     newNode->next = nullptr;
 
+    // set_list(); SE FACCIO COSì TUTTE LE LISTE CON PIù DI 2 ELEMENTI SARà SEMPRE ELIMINATO A 1 + NON RISOVE LEAKS
+
     if (pimpl->head->list.pimpl->head == nullptr) {
         pimpl->head->list.pimpl->head = newNode;
         pimpl->tail->list.pimpl->tail = newNode;
@@ -437,10 +566,13 @@ void json::push_back(json const& j){ // alla fine equivale a append
 
 }
 
+
+//inserisci un elemento in un dizionario
 void json::insert(std::pair<std::string, json> const& d){
 
     pEl n = new El;
     n->next=nullptr;
+    n->Null= false;
     n->dic.first = d.first;
     n->dic.second = d.second;
 
@@ -453,23 +585,22 @@ void json::insert(std::pair<std::string, json> const& d){
 }
 
 
-//! forward declaration potrebbe non servirmi
+//? forward declaration
 json E(std::istream& is);
 
 json get_lista(std::istream& is){
     // legge una lista può leggere dei dizionari
     // finchè non si chiude la lista
     json j;
-    j.set_list();
-    char p=is.peek();//! se prima ho : 
+    j.set_list();//! LEACKS
+    char p=is.peek();
     while(p!=']'){
 
         if(p=='\n') {is.ignore(1,'\n'); p=is.peek();}
         if(p==']'||p=='}') return j;
 
         if(p!=','){
-            if(p=='{'||p=='[') is.putback(p); //! loops with p = is.peek and with [[...]]
-
+            // if(p=='{'||p=='[') is.putback(p); //? fixes loop with [[..]]
             j.push_back(E(is)); 
         }else is>>p;
 
@@ -515,8 +646,8 @@ string dic_str(istream& is){
 json get_lista_single(std::istream& is){
 
     json j;
-    j.set_list();
-    char p=is.peek();//! se prima ho : 
+    j.set_list();//! LEACKS
+    char p=is.peek();
 
     if(p=='\n') {is.ignore(1,'\n'); p=is.peek();}
 
@@ -531,24 +662,24 @@ json dell(istream& is){
 
     char p=0;
     json j;
-    is>>p;
+    is>>p; 
 
     if(p=='['||p=='{'){
         is.putback(p);
-        j = E(is);    
+        j = move(E(is));    
     }else{
-        is.putback(p);//! non c'è un char terminatore se ho 1 singolo el
-        j = get_lista_single(is);
-    }
+        is.putback(p);
+        j = move(get_lista_single(is));
+    }   
 
     return j;
 }
 
 
 json get_dictionary(istream& is){
-    // legge un pair di key e El che può essere dicitionary e lista se 
-    json d;
-    d.set_dictionary();
+
+    json d; 
+    d.set_dictionary(); 
     std::pair<string , json> El_dict;
     char p = is.peek();
 
@@ -561,8 +692,7 @@ json get_dictionary(istream& is){
         if(p!=','){
             // if(p=='{'||p=='[') is.putback(p);
             El_dict.first = dic_str(is);
-            El_dict.second = dell(is); //! se c'è solo 1 elemento devo
-            //! lo stesso creare una lista con un elemento
+            El_dict.second = move(dell(is)); //! leacks
 
             d.insert(El_dict);
 
@@ -589,8 +719,8 @@ json number(istream& is){
 
     if(n=='\n') {is.ignore(1, '\n'); n=is.peek();}
     if(n=='}'||n==']') return j;
-    // else if(n!=',') throw json_exception{"unexpected caracter after number"}; //!ci sono altri caratteri che non sono ammessi
-    is.ignore(std::numeric_limits<std::streamsize>::max(), ','); // ignora il rest0 , spazi vuoti etc fino a ,
+    is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
+
     return j;
 }
 
@@ -609,7 +739,7 @@ json strings(istream& is){
         }
         if(p=='"'&&is_acceptable) {is_acceptable=false; p=0;}
     }
-    // std::getline(is, s);// non va bene devo leggere ogni singolo char fino ad una " senza / davanti 
+
     s.erase(s.length()-1);
     //?
     is>>std::skipws;
@@ -618,21 +748,16 @@ json strings(istream& is){
     char n = (is>>std::ws).peek();
     if(n=='\n') {is.ignore(1, '\n'); n=is.peek();}
     if(n=='}'||n==']') return j;
-    is.ignore(std::numeric_limits<std::streamsize>::max(), ',');// ignora il rest0 , spazi vuoti etc fino a ,
+    is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
     return j;
 }
 
 json null(istream& is){
     //?
-    std::cout<<"--null \n"; // skippo alla prossima riga
-    // ignoro i prossimi char che saranno la critta null e passo alla prossima linea
+    std::cout<<"--null \n"; 
     json j;
     j.set_null();
-    //!devo leggere tutto null e  erificare se è scritto bene 
-    //!potrei ocnsiderare null anche lo spazio vuoto
-    // is>>std::skipws;
-    // char n = (is>>std::ws).peek();
-    // if(n=='u') 
+
     is.ignore(3);
     char n = (is>>std::ws).peek();
     if(n=='\n') {is.ignore(1, '\n'); n=is.peek();}
@@ -645,7 +770,7 @@ json boolean(istream& is){
     char p=0;
     json j;
     is>>p;
-    // use is.boolalpha
+
     if(p=='t'){
         //?
         std::cout<<"--true \n";
@@ -666,43 +791,43 @@ json boolean(istream& is){
     return j;
 }
 
+
 json E(istream& is){
-    // leggo un elemento della lista / dizionario
+
     char p=0;
     json j;
     is>>p;
     if(p=='\n') {is>>p;}
-    if(p>='0' && p<='9'){
+    if((p>='0' && p<='9')||p=='-'){
         is.putback(p);
-        // try{
-        j=number(is);
-        // } catch (json_exception no_char) {cout<<"execption detected : "<<no_char.msg<<endl;} 
+
+        j=move(number(is));
 
     }else if(p=='['){
         //?
         std::cout<<"--[ \n";
-        j=get_lista(is);
+        j=move(get_lista(is));
         is>>p;
         //?
         std::cout<<"--] \n";
     }else if(p=='{'){
         //?
         std::cout<<"--{ \n";
-        j=get_dictionary(is);
+        j=move(get_dictionary(is));
         is>>p;
         //?
         std::cout<<"--} \n";
     }else if(p!='"'){
         // o è null o è un buleano
         if (p=='n'){
-            j=null(is);
+            j=move(null(is));
         } 
         else {
             is.putback(p);
-            j=boolean(is);
+            j=move(boolean(is));
         }
     }else{
-        j=strings(is);
+        j=move(strings(is));
 
     }
 
@@ -716,11 +841,18 @@ istream& operator>>(istream& is, json& j){
     if(p=='['){
         j=get_lista(is);
     }else if(p=='{'){
-        j=get_dictionary(is);
+        j=move(get_dictionary(is));
     }
+    
     //?
     cout<<"end of stream \n";
     return is;
+}
+
+std::ostream& operator<<(std::ostream& lhs, json const& rhs){
+
+    // devo usare gli iterator
+
 }
 
 int main(){
@@ -729,11 +861,12 @@ int main(){
     //?
     cout<<"end of stream \n";
 
+    // json& k = *(++j.begin_list());
+    // cout<<k.get_number();
     // json k=j["s"];
     // k=j["cio"];
 
     // double a = k.get_number();
     // cout<<"a"<<a;
-
     return 0;
 }
