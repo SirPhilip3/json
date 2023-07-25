@@ -35,6 +35,7 @@ json::json(){
 }
 
 //destructor
+//! POTREBBE NON ELIMINARE TUTTO
 json::~json(){
 
     if(pimpl!=nullptr){
@@ -67,7 +68,7 @@ json::json(json const& j){
     while (pc!=nullptr)
     {
         if(j.is_list()){
-            // set_list(); //? potrebbe essere inutile
+            set_list(); //? potrebbe essere inutile
             push_back(pc->list);
         }else{
             set_dictionary();
@@ -381,6 +382,9 @@ void json::set_list(){//! LEACKS
     // n->list.pimpl->tail=nullptr;
     n->Null=false;
 
+    n->list.pimpl->head=new El;
+    n->list.pimpl->tail=n->list.pimpl->head;
+
     pimpl->head=n;
     pimpl->tail=n;
 
@@ -551,7 +555,6 @@ void json::push_back(json const& j){ // alla fine equivale a append
     newNode->dic = j.pimpl->head->dic;
     newNode->list = j.pimpl->head->list;
     newNode->Dic = j.pimpl->head->Dic;
-
     newNode->next = nullptr;
 
     // set_list(); SE FACCIO COSì TUTTE LE LISTE CON PIù DI 2 ELEMENTI SARà SEMPRE ELIMINATO A 1 + NON RISOVE LEAKS
@@ -573,8 +576,8 @@ void json::insert(std::pair<std::string, json> const& d){
     pEl n = new El;
     n->next=nullptr;
     n->Null= false;
-    n->dic.first = d.first;
-    n->dic.second = d.second;
+    n->dic.first = d.first;//! legge errato
+    n->dic.second = json(d.second); //! capire come funziona crea prob test12
 
     if(pimpl->tail->Dic.pimpl->tail!=nullptr){
         pimpl->tail->Dic.pimpl->tail->next=n;
@@ -601,7 +604,7 @@ json get_lista(std::istream& is){
 
         if(p!=','){
             // if(p=='{'||p=='[') is.putback(p); //? fixes loop with [[..]]
-            j.push_back(E(is)); 
+            j.push_back(E(is));  //! crea prob test15
         }else is>>p;
 
         if(is) p=is.peek(); // per peek deve essere valido
@@ -649,7 +652,7 @@ json get_lista_single(std::istream& is){
     j.set_list();//! LEACKS
     char p=is.peek();
 
-    if(p=='\n') {is.ignore(1,'\n'); p=is.peek();}
+    if(p=='\n') {is.ignore(1,'\n'); p=is.peek();} //! p is never read
 
     j.push_back(E(is));
 
@@ -679,7 +682,7 @@ json dell(istream& is){
 json get_dictionary(istream& is){
 
     json d; 
-    d.set_dictionary(); 
+    d.set_dictionary(); //! LEAKS
     std::pair<string , json> El_dict;
     char p = is.peek();
 
@@ -695,6 +698,8 @@ json get_dictionary(istream& is){
             El_dict.second = move(dell(is)); //! leacks
 
             d.insert(El_dict);
+
+            El_dict.second.~json(); //? elimino ad ogni iterazione la memoria allocata con la new per un json prima non la eliminavo la sovrascrivevo
 
         }else is>>p;// devo consumare ,
 
@@ -839,7 +844,7 @@ istream& operator>>(istream& is, json& j){
     char p = 0;
     is >> p;
     if(p=='['){
-        j=get_lista(is);
+        j=move(get_lista(is));
     }else if(p=='{'){
         j=move(get_dictionary(is));
     }
