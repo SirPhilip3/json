@@ -35,7 +35,6 @@ json::json(){
 }
 
 //destructor
-//! POTREBBE NON ELIMINARE TUTTO
 json::~json(){
 
     if(pimpl!=nullptr){
@@ -69,10 +68,15 @@ json::json(json const& j){
     {
         if(j.is_list()){
             set_list(); //? potrebbe essere inutile
-            push_back(pc->list);
+            push_back(pc->list); //! devo aggiungere un elemento se la lista è vuota
         }else{
             set_dictionary();
-            insert(pc->Dic.pimpl->head->dic);
+            pEl tmp = pc->Dic.pimpl->head;
+            while (tmp!=nullptr)
+            {
+                insert(tmp->dic);
+                tmp=tmp->next;
+            }
         }
         pc=pc->next;
     }
@@ -357,9 +361,8 @@ json::const_list_iterator json::end_list() const{
 }
 
 //? SETTING
-//! TUTTI I SET DANNO PROBLEMI DI LEAKS DERIVANTE DA EL()
 
-void json::set_list(){//! LEACKS
+void json::set_list(){
 
     if(pimpl!=nullptr){
         pEl pc = pimpl->head;
@@ -376,13 +379,15 @@ void json::set_list(){//! LEACKS
     // pimpl->head = nullptr;
     // pimpl->tail = nullptr;
 
-    pEl n = new El; //! leacks
+    pEl n = new El; 
     n->next=nullptr;
     // n->list.pimpl->head=nullptr;
     // n->list.pimpl->tail=nullptr;
     n->Null=false;
 
     n->list.pimpl->head=new El;
+    n->list.pimpl->head->Null=true;
+    n->list.pimpl->head->i_num=true;//! netrambi true significa che è un json.list vuoto
     n->list.pimpl->tail=n->list.pimpl->head;
 
     pimpl->head=n;
@@ -419,7 +424,6 @@ void json::set_dictionary(){
 }
 
 void json::set_string(string const& x){
-    //! json se lista pimpl alla head 
     if(pimpl!=nullptr){
         pEl pc = pimpl->head;
         
@@ -547,19 +551,23 @@ void json::push_front(json const& j){ // equivale a prepend
 void json::push_back(json const& j){ // alla fine equivale a append
 
     pEl newNode = new El;
-    newNode->i_num = j.pimpl->head->i_num;
+    newNode->i_num = j.pimpl->head->i_num; //!invalid read test15
     newNode->num = j.pimpl->head->num;
     newNode->boo = j.pimpl->head->boo;
     newNode->s = j.pimpl->head->s;
     newNode->Null = j.pimpl->head->Null;
-    newNode->dic = j.pimpl->head->dic;
+    newNode->dic = j.pimpl->head->dic; 
     newNode->list = j.pimpl->head->list;
     newNode->Dic = j.pimpl->head->Dic;
     newNode->next = nullptr;
 
     // set_list(); SE FACCIO COSì TUTTE LE LISTE CON PIù DI 2 ELEMENTI SARà SEMPRE ELIMINATO A 1 + NON RISOVE LEAKS
 
-    if (pimpl->head->list.pimpl->head == nullptr) {
+    if (pimpl->head->list.pimpl->head->Null && pimpl->head->list.pimpl->head->i_num  ) {
+
+        delete pimpl->head->list.pimpl->head;
+        pimpl->head->list.pimpl->head=nullptr;
+        pimpl->head->list.pimpl->tail=nullptr;
         pimpl->head->list.pimpl->head = newNode;
         pimpl->tail->list.pimpl->tail = newNode;
     } else {
@@ -576,8 +584,8 @@ void json::insert(std::pair<std::string, json> const& d){
     pEl n = new El;
     n->next=nullptr;
     n->Null= false;
-    n->dic.first = d.first;//! legge errato
-    n->dic.second = json(d.second); //! capire come funziona crea prob test12
+    n->dic.first = d.first;
+    n->dic.second = json(d.second); //! copy constructor
 
     if(pimpl->tail->Dic.pimpl->tail!=nullptr){
         pimpl->tail->Dic.pimpl->tail->next=n;
@@ -595,11 +603,17 @@ json get_lista(std::istream& is){
     // legge una lista può leggere dei dizionari
     // finchè non si chiude la lista
     json j;
-    j.set_list();//! LEACKS
-    char p=is.peek();
+    j.set_list();
+    is>>std::skipws;
+    // is>>std::ws;
+
+    char p=(is>>std::ws).peek();
     while(p!=']'){
 
-        if(p=='\n') {is.ignore(1,'\n'); p=is.peek();}
+        if(p=='\n') {
+            is.ignore(1,'\n');
+            if(is) p=(is>>std::ws).peek(); //!controllo BHO
+        }
         if(p==']'||p=='}') return j;
 
         if(p!=','){
@@ -607,7 +621,7 @@ json get_lista(std::istream& is){
             j.push_back(E(is));  //! crea prob test15
         }else is>>p;
 
-        if(is) p=is.peek(); // per peek deve essere valido
+        if(is) p=(is>>std::ws).peek(); // per peek deve essere valido
         else return j;
     }
 
@@ -619,14 +633,19 @@ string dic_str(istream& is){
     char p=0;
     bool is_acceptable=false;
     is>>p;
-    if(p=='{') {is>>p;}
-    if(p=='"') {p=0;}
+    if(p=='{') {
+        is>>p;}
+    if(p=='"') {
+        p=0;}
+
+    is>>std::noskipws;
+
     while(p!='"'||is_acceptable){
 
-        // if(p=='\n') {is.ignore(1,'\n'); p=is.peek();}
-        // if(p=='}') return s;
+        if(p=='\n') {is.ignore(1,'\n'); p=(is>>std::ws).peek();}
+        if(p=='}') return s;
 
-        is>>std::noskipws>>p;
+        is>>p;
         s+=p;
         if(p=='\\'){
             if(is.peek()=='"'){
@@ -649,10 +668,16 @@ string dic_str(istream& is){
 json get_lista_single(std::istream& is){
 
     json j;
-    j.set_list();//! LEACKS
-    char p=is.peek();
+    j.set_list();
+    // is>>std::skipws;
+    // is>>std::ws;
 
-    if(p=='\n') {is.ignore(1,'\n'); p=is.peek();} //! p is never read
+    char p=(is>>std::ws).peek();
+
+    if(p=='\n') {
+        is.ignore(1,'\n'); 
+        if(is) p=(is>>std::ws).peek();
+    } //! p is never read
 
     j.push_back(E(is));
 
@@ -665,13 +690,16 @@ json dell(istream& is){
 
     char p=0;
     json j;
-    is>>p; 
+    // is>>std::skipws;
+    // is>>std::ws;//! skips ws for peek
+
+    p=(is>>std::ws).peek();
 
     if(p=='['||p=='{'){
-        is.putback(p);
+        // is.putback(p);
         j = move(E(is));    
     }else{
-        is.putback(p);
+        // is.putback(p);
         j = move(get_lista_single(is));
     }   
 
@@ -682,20 +710,20 @@ json dell(istream& is){
 json get_dictionary(istream& is){
 
     json d; 
-    d.set_dictionary(); //! LEAKS
+    d.set_dictionary();
     std::pair<string , json> El_dict;
-    char p = is.peek();
+    is>>std::skipws;
+    // is>>std::ws;
+
+    char p=(is>>std::ws).peek();
 
     while(p!='}'){
         // cout<<"inside dic"<<endl;
 
-        if(p=='\n') {is.ignore(1,'\n'); p=is.peek();}
-        if(p=='}') return d;
-
         if(p!=','){
             // if(p=='{'||p=='[') is.putback(p);
             El_dict.first = dic_str(is);
-            El_dict.second = move(dell(is)); //! leacks
+            El_dict.second = move(dell(is)); 
 
             d.insert(El_dict);
 
@@ -703,8 +731,13 @@ json get_dictionary(istream& is){
 
         }else is>>p;// devo consumare ,
 
-        if(is) p=(is>>std::ws).peek();// si ferma a , bho
+        if(is) {
+            p=(is>>std::ws).peek();// si ferma a , bho
+            if(p=='\n') {is.ignore(1,'\n'); p=(is>>std::ws).peek();}
+        }
         else return d;
+    
+        if(p=='}') return d;
     }
 
     return d;
@@ -715,14 +748,17 @@ json number(istream& is){
 
     json j;
     double num = 0;
+    is>>std::skipws;
+    // is>>std::ws;
+
     is>>num;
     //?
     std::cout<<num<<" --num \n";
     j.set_number(num);
 
     char n = (is>>std::ws).peek();
-
-    if(n=='\n') {is.ignore(1, '\n'); n=is.peek();}
+    // char n = is.peek();
+    if(n=='\n') {is.ignore(1, '\n'); n=(is>>std::ws).peek();}
     if(n=='}'||n==']') return j;
     is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
 
@@ -734,8 +770,11 @@ json strings(istream& is){
     json j;
     char p=0;
     bool is_acceptable=false;
+
+    is>>std::noskipws;
+
     while(p!='"'||is_acceptable){
-        is>>std::noskipws>>p;
+        is>>p;
         s+=p;
         if(p=='\\'){
             if(is.peek()=='"'){
@@ -746,12 +785,15 @@ json strings(istream& is){
     }
 
     s.erase(s.length()-1);
-    //?
+    
     is>>std::skipws;
+    // is>>std::ws;
     std::cout<<"--"<<s<<'\n';
+
     j.set_string(s); // potrei chiamarlo
     char n = (is>>std::ws).peek();
-    if(n=='\n') {is.ignore(1, '\n'); n=is.peek();}
+    // char n = is.peek();
+    if(n=='\n') {is.ignore(1, '\n'); n=(is>>std::ws).peek();}
     if(n=='}'||n==']') return j;
     is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
     return j;
@@ -761,11 +803,14 @@ json null(istream& is){
     //?
     std::cout<<"--null \n"; 
     json j;
+    is>>std::skipws;
+    // is>>std::ws;
     j.set_null();
 
     is.ignore(3);
     char n = (is>>std::ws).peek();
-    if(n=='\n') {is.ignore(1, '\n'); n=is.peek();}
+    // char n = is.peek();
+    if(n=='\n') {is.ignore(1, '\n'); n=(is>>std::ws).peek();}
     if(n=='}'||n==']') return j;
     is.ignore(std::numeric_limits<std::streamsize>::max(),','); 
     return j;
@@ -774,6 +819,8 @@ json null(istream& is){
 json boolean(istream& is){
     char p=0;
     json j;
+    is>>std::skipws;
+    // is>>std::ws;
     is>>p;
 
     if(p=='t'){
@@ -790,7 +837,8 @@ json boolean(istream& is){
     }
 
     char n = (is>>std::ws).peek();
-    if(n=='\n') {is.ignore(1, '\n'); n=is.peek();}
+    // char n = is.peek();
+    if(n=='\n') {is.ignore(1, '\n'); n=(is>>std::ws).peek();}
     if(n=='}'||n==']') return j;
     is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
     return j;
@@ -801,6 +849,9 @@ json E(istream& is){
 
     char p=0;
     json j;
+    is>>std::skipws;
+    // is>>std::ws;
+
     is>>p;
     if(p=='\n') {is>>p;}
     if((p>='0' && p<='9')||p=='-'){
@@ -842,6 +893,9 @@ json E(istream& is){
 // cin
 istream& operator>>(istream& is, json& j){
     char p = 0;
+    is>>std::skipws;
+    // is>>std::ws;
+
     is >> p;
     if(p=='['){
         j=move(get_lista(is));

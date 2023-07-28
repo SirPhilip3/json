@@ -1,0 +1,6 @@
+{
+    "Airport": {
+      "Code": "ATL",
+      "Name": "Atlanta, GA: Hartsfield-Jackson Atlanta International"
+    }
+}
