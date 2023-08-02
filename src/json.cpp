@@ -4,6 +4,9 @@ using namespace std;
 
 //? STRUCT
 
+//! elementi della lista e dizionario devono essere a loro volta dei json
+//! posso costruire un json temporaneo che mi racchiuda l'elemento selezionato dal * e poi ritornarlo
+
 struct El{
     bool i_num=false;
     double num;
@@ -24,6 +27,7 @@ struct json::impl{
     pEl head;
     pEl tail;
 };
+
 
 //? CONSTRUCTOR / DESTRUCTOR
 
@@ -213,10 +217,7 @@ string const& json::get_string() const{
     }else cout<<"no string found \n";
 }
 
-//! forward declaration
-json dell(istream& is);
-
-//!
+//! non posso modificare il json però posso comunque ritornare il valore corretto se trovato
 json const& json::operator[](std::string const& s) const{
     if(is_dictionary()){
         pEl tmp = pimpl->head->Dic.pimpl->head;
@@ -238,15 +239,16 @@ json& json::operator[](std::string const& s){
 
         pEl tmp = pimpl->head->Dic.pimpl->head;
         bool found = false;
+
         while (tmp != nullptr&&!found)
         {
-            if(tmp->dic.first==s) {found=true; return tmp->dic.second;}
+            if(tmp->dic.first==s) {found=true; return tmp->dic.second;} 
             tmp=tmp->next;           
         }
 
         pair<std::string, json> p;
         p.first=s; 
-        p.second.set_list(); // devo creare un json cmoe se fosse una lista
+        p.second.set_list(); // devo creare un json come se fosse una lista
         p.second.pimpl->head->list.set_null();
         insert(p);
         tmp=pimpl->head->Dic.pimpl->tail;
@@ -263,8 +265,8 @@ struct json::list_iterator{
 
     using iterator_category=std::forward_iterator_tag;
     using value_type = json;
-    using pointer = json*;
-    using reference = json&;
+    using pointer = pEl*; //prima json*
+    using reference = pEl&; //prima json&
 
     list_iterator(pEl ptr) : m_ptr(ptr){}
 
@@ -277,19 +279,25 @@ struct json::list_iterator{
     bool operator!=(list_iterator const& rhs) const;
 
     private :
-        pEl m_ptr;
+        pEl m_ptr; // valore di ritorno begin_list()
 
 };
 
 json::list_iterator json::begin_list(){
 
-    return{pimpl->head};
+    // return{pimpl->head};
+    //! dovrei converitirlo in json
+    //! non ha senso devo accedere direttamente al container per poterlo modificare 
+    //! se creo una copia e ritorno una reference a quello non modifico l'oggetto originale
+    //! ma una sua copia 
+
+    return{pimpl->head->list.pimpl->head};
 
 }
 
 json::list_iterator json::end_list(){
 
-    return{pimpl->tail->list.pimpl->tail->next};
+    return{pimpl->tail->list.pimpl->head->next};
 
 }
 
@@ -307,7 +315,7 @@ bool json::list_iterator::operator!=(list_iterator const& rhs) const{
 
 json::list_iterator& json::list_iterator::operator++(){
 
-    m_ptr = m_ptr->list.pimpl->head->next;
+    m_ptr = m_ptr.pimpl->head->next;
     return *this;
 
 }
@@ -315,30 +323,34 @@ json::list_iterator& json::list_iterator::operator++(){
 json::list_iterator json::list_iterator::operator++(int /*dummy*/){
 
     list_iterator tmp = *this;
-    m_ptr = m_ptr->next;
+    // m_ptr = m_ptr->next;
+    m_ptr = m_ptr.pimpl->head->next;
     return tmp;
 
 }
 
+//!
 json::list_iterator::reference json::list_iterator::operator*() const{
 
-    return m_ptr->list;    
+    return m_ptr.pimpl->head;    
 
 }
 
 
 json::list_iterator::pointer json::list_iterator::operator->() const{
 
-    return &(m_ptr->list);
+    return &(m_ptr.pimpl->head);
 
 }
+//!
+
 
 //const list iterator
 struct json::const_list_iterator{
     
     using iterator_category=std::bidirectional_iterator_tag;
     using value_type = const json;
-    using pointer = json const*;
+    using pointer = json const*; 
     using reference = json const&;
 
     const_list_iterator(pEl ptr) : m_ptr(ptr){}
@@ -395,6 +407,7 @@ void json::set_list(){
 
 }
 
+//! dovrebbe creare un dizionario vuoto come in set_list non crease un Dic con pointers a nullptr
 void json::set_dictionary(){
 
     if(pimpl!=nullptr){
@@ -599,6 +612,8 @@ void json::insert(std::pair<std::string, json> const& d){
 //? forward declaration
 json E(std::istream& is);
 
+json dell(istream& is);
+
 json get_lista(std::istream& is){
     // legge una lista può leggere dei dizionari
     // finchè non si chiude la lista
@@ -627,6 +642,7 @@ json get_lista(std::istream& is){
 
     return j;
 }
+
 
 string dic_str(istream& is){
     std::string s;
@@ -908,22 +924,22 @@ istream& operator>>(istream& is, json& j){
     return is;
 }
 
-std::ostream& operator<<(std::ostream& lhs, json const& rhs){
+// std::ostream& operator<<(std::ostream& lhs, json const& rhs){
 
     // devo usare gli iterator
 
-}
+// }
 
 int main(){
     json j;
     cin>>j;
     //?
-    cout<<"end of stream \n";
+    // cout<<"end of stream \n";
 
-    // json& k = *(++j.begin_list());
+    json& k = j.begin_list();
     // cout<<k.get_number();
-    // json k=j["s"];
-    // k=j["cio"];
+    // json n=j["pp"]; //! da implementare con iterator
+    // n=j["cio"];
 
     // double a = k.get_number();
     // cout<<"a"<<a;
