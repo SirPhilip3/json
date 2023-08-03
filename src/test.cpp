@@ -81,21 +81,13 @@ json::~json(){
 
 //copy constructor
 json::json(json const& j){
-    
-    if(pimpl!=nullptr){
-        //! duped
-        if(is_list()){
-            impl::PNodeL pc = pimpl->headL;
-            destroyT(pc);
-            pimpl->headL = nullptr;
-            pimpl->tailL = nullptr;
-        }else if(is_dictionary()){
-            impl::PNodeD pc = pimpl->headD;
-            destroyT(pc);
-            pimpl->headD = nullptr;
-            pimpl->tailD = nullptr;
-        }
-    }
+
+    pimpl = new impl;
+    pimpl->tipo = impl::Tipo::Null;
+    pimpl->headL = nullptr;
+    pimpl->tailL = nullptr;
+    pimpl->headD = nullptr;
+    pimpl->tailD = nullptr;
 
     if(j.is_list()){
         impl::PNodeL pc = j.pimpl->headL;
@@ -109,6 +101,13 @@ json::json(json const& j){
             insert(pc->val);
             pc=pc->next;
         }
+    }else{
+
+        pimpl->tipo = j.pimpl->tipo;
+        pimpl->number_val = j.pimpl->number_val;
+        pimpl->bool_val = j.pimpl->bool_val;
+        pimpl->string_val = j.pimpl->string_val;
+
     }
     
 }
@@ -253,31 +252,31 @@ json const& json::operator[](std::string const& s) const{
 
 }
 
-// //!
-// json& json::operator[](std::string const& s){
+//! se non trovo ele devo metterne uno vuoto nel diozionario
+json& json::operator[](std::string const& s){
 
-//     if(is_dictionary()){
+    if(is_dictionary()){
 
-//         impl::PNodeD tmp = pimpl->headD;
-//         bool found = false;
+        impl::PNodeD tmp = pimpl->headD;
+        bool found = false;
 
-//         while (tmp != nullptr&&!found)
-//         {
-//             if(tmp->val.first==s) {found=true; return tmp->val.second;} 
-//             tmp=tmp->next;           
-//         }
+        while (tmp != nullptr&&!found)
+        {
+            if(tmp->val.first==s) found=true;
+            else tmp = tmp->next;   
+        }
 
-//         pair<std::string, json> p;
-//         p.first=s; 
-//         p.second.set_list(); // devo creare un json come se fosse una lista
-//         p.second.
-//         insert(p);
-//         tmp=pimpl->head->Dic.pimpl->tail;
-//         return tmp->dic.second;
+        if(found) return tmp->val.second;
 
-//     }else cout<<"not a dictionary \n";
+        pair<std::string, json> p;
+        p.first=s; 
+        p.second.set_null(); // devo creare un json come se fosse una lista
+        insert(p);
+        return pimpl->tailD->val.second;
 
-// }
+    }else cout<<"not a dictionary \n";
+
+}
 
 //? SETTING
 
@@ -369,20 +368,22 @@ void json::set_null(){
 }
 
 
-//push_front 
+// push_front 
 // NOT USED FOR NOW
-// void json::push_front(json const& j){ // equivale a prepend
+void json::push_front(json const& j){ // equivale a prepend
     
-//     pEl newNode = new El;
-//     newNode->list = j;//! shallow copy
-//     newNode->next = pimpl->head;
+    pimpl->tipo = impl::Tipo::List;//! better placement
 
-//     if (pimpl->head == nullptr) {
-//         pimpl->tail = newNode;
-//     }
-//     pimpl->head = newNode;
+    impl::PNodeL newNode = new impl::NodeL;
+    newNode->val = j;
+    newNode->next = pimpl->headL;
 
-// }
+    if (pimpl->headL == nullptr) {
+        pimpl->tailL = newNode;
+    }
+    pimpl->headL = newNode;
+
+}
 
 
 //push_back
@@ -448,7 +449,7 @@ json get_lista(std::istream& is){
 
         if(p!=','){
             // if(p=='{'||p=='[') is.putback(p); //? fixes loop with [[..]]
-            j.push_back(E(is));  //! crea prob test15
+            j.push_back(E(is));  
         }else is>>p;
 
         if(is) p=(is>>std::ws).peek(); // per peek deve essere valido
@@ -495,7 +496,7 @@ string dic_str(istream& is){
     return s;
 }
 
-
+//!useless
 json get_lista_single(std::istream& is){
 
     json j;
@@ -516,7 +517,7 @@ json get_lista_single(std::istream& is){
 
 }
 
-
+//!useless
 json dell(istream& is){
 
     char p=0;
@@ -748,10 +749,12 @@ int main(){
 
     // json& k = j.begin_list();
     // cout<<k.get_number();
-    // json n=j["pp"]; //! da implementare con iterator
-    // n=j["cio"];
+    json n = j["1"];
+    n=j["2"];
+    n=j["3"];
+    n=j["4"];
 
-    // double a = k.get_number();
-    // cout<<"a"<<a;
+    double a = n.get_number();
+    cout<<"a"<<a;
     return 0;
 }
