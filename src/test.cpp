@@ -740,21 +740,320 @@ istream& operator>>(istream& is, json& j){
     return is;
 }
 
+
+// list iterator
+//? iteratorre cosa deve fare?
+//! 
+struct json::list_iterator{
+
+    using iterator_category=std::forward_iterator_tag;//!  per bidirectiornal ho bisogno di prev nella lista
+    using value_type = json;
+    using pointer = json*; //prima json*
+    using reference = json&; //prima json&
+
+    list_iterator(impl::PNodeL ptr) : m_ptr(ptr){}
+
+    reference operator*() const; // operator dereference 
+    pointer operator->() const; // useful for structs
+    // const because they do not modify the pointer
+
+    //! operator-
+    //! operator+
+    list_iterator operator+(int n);
+    list_iterator& operator++(); // prefix ++
+    list_iterator operator++(int /*dummy*/); // postfix ++
+    bool operator==(list_iterator const& rhs) const;
+    bool operator!=(list_iterator const& rhs) const;
+
+    private :
+        impl::PNodeL m_ptr; // valore di ritorno begin_list()
+
+};
+
+json::list_iterator json::begin_list(){
+    return{pimpl->headL};
+}
+
+json::list_iterator json::end_list(){
+    return{pimpl->tailL->next};
+}
+
+bool json::list_iterator::operator==(list_iterator const& rhs) const{
+    return m_ptr == rhs.m_ptr;
+}
+
+bool json::list_iterator::operator!=(list_iterator const& rhs) const{
+    return !(*this==rhs);
+}
+
+json::list_iterator json::list_iterator::operator+(int n){
+
+    list_iterator temp = *this;
+    for(int i = 0; i<n; ++i){
+        ++temp;
+    }
+    return temp;
+
+}
+
+json::list_iterator& json::list_iterator::operator++(){
+    m_ptr = m_ptr->next;
+    return *this;
+}
+
+json::list_iterator json::list_iterator::operator++(int /*dummy*/){
+    list_iterator tmp = *this;
+    ++(*this);
+    return tmp;
+}
+
+json::list_iterator::reference json::list_iterator::operator*() const {
+    return m_ptr->val;    
+}
+
+json::list_iterator::pointer json::list_iterator::operator->() const{
+    return &(m_ptr->val);
+}
+
+
+struct json::const_list_iterator{
+
+    using iterator_category=std::forward_iterator_tag;//!  per bidirectiornal ho bisogno di prev nella lista
+    using value_type = const json;
+    using pointer = json const*; //prima json*
+    using reference = json const& ; //prima json&
+
+    const_list_iterator(impl::PNodeL ptr) : m_ptr(ptr){}
+
+    reference operator*() const; // operator dereference 
+    pointer operator->() const; // useful for structs
+    // const because they do not modify the pointer
+
+    //! operator-
+    //! operator+
+    const_list_iterator operator+(int n);
+    const_list_iterator& operator++(); // prefix ++
+    const_list_iterator operator++(int /*dummy*/); // postfix ++
+    bool operator==(const_list_iterator const& rhs) const;
+    bool operator!=(const_list_iterator const& rhs) const;
+
+    private :
+        impl::PNodeL m_ptr; // valore di ritorno begin_list()
+
+};
+
+json::const_list_iterator json::begin_list() const{
+    return{pimpl->headL};
+}
+
+json::const_list_iterator json::end_list() const{
+    return{pimpl->tailL->next};
+}
+
+bool json::const_list_iterator::operator==(const_list_iterator const& rhs) const{
+    return m_ptr == rhs.m_ptr;
+}
+
+bool json::const_list_iterator::operator!=(const_list_iterator const& rhs) const{
+    return !(*this==rhs);
+}
+
+json::const_list_iterator json::const_list_iterator::operator+(int n){
+
+    const_list_iterator temp = *this;
+    for(int i = 0; i<n; ++i){
+        ++temp;
+    }
+    return temp;
+
+}
+
+json::const_list_iterator& json::const_list_iterator::operator++(){
+    m_ptr = m_ptr->next;
+    return *this;
+}
+
+json::const_list_iterator json::const_list_iterator::operator++(int /*dummy*/){
+    const_list_iterator tmp = *this;
+    ++(*this);
+    return tmp;
+}
+
+json::const_list_iterator::reference json::const_list_iterator::operator*() const {
+    return m_ptr->val;    
+}
+
+json::const_list_iterator::pointer json::const_list_iterator::operator->() const{
+    return &(m_ptr->val);
+}
+
+
+struct json::dictionary_iterator{
+
+    using iterator_category=std::forward_iterator_tag;//!  per bidirectiornal ho bisogno di prev nella lista
+    using value_type = const json;
+    using pointer = json const*; //prima json*
+    using reference = json const& ; //prima json&
+
+    dictionary_iterator(impl::PNodeD ptr) : m_ptr(ptr){}
+
+    reference operator*() const; // operator dereference 
+    pointer operator->() const; // useful for structs
+    // const because they do not modify the pointer
+
+    //! operator-
+    //! operator+
+    dictionary_iterator operator+(int n);
+    dictionary_iterator& operator++(); // prefix ++
+    dictionary_iterator operator++(int /*dummy*/); // postfix ++
+    bool operator==(dictionary_iterator const& rhs) const;
+    bool operator!=(dictionary_iterator const& rhs) const;
+
+    private :
+        impl::PNodeD m_ptr; // valore di ritorno begin_list()
+
+};
+
+json::dictionary_iterator json::begin_dictionary(){
+    return{pimpl->headD};
+}
+
+json::dictionary_iterator json::end_dictionary(){
+    return{pimpl->tailD->next};
+}
+
+bool json::dictionary_iterator::operator==(dictionary_iterator const& rhs) const{
+    return m_ptr == rhs.m_ptr;
+}
+
+bool json::dictionary_iterator::operator!=(dictionary_iterator const& rhs) const{
+    return !(*this==rhs);
+}
+
+json::dictionary_iterator json::dictionary_iterator::operator+(int n){
+
+    dictionary_iterator temp = *this;
+    for(int i = 0; i<n; ++i){
+        ++temp;
+    }
+    return temp;
+
+}
+
+json::dictionary_iterator& json::dictionary_iterator::operator++(){
+    m_ptr = m_ptr->next;
+    return *this;
+}
+
+json::dictionary_iterator json::dictionary_iterator::operator++(int /*dummy*/){
+    dictionary_iterator tmp = *this;
+    ++(*this);
+    return tmp;
+}
+
+json::dictionary_iterator::reference json::dictionary_iterator::operator*() const {
+    return m_ptr->val.second;    
+}
+
+json::dictionary_iterator::pointer json::dictionary_iterator::operator->() const{
+    return &(m_ptr->val.second);
+}
+
+
+struct json::const_dictionary_iterator{
+
+    using iterator_category=std::forward_iterator_tag;//!  per bidirectiornal ho bisogno di prev nella lista
+    using value_type = const json;
+    using pointer = json const*; //prima json*
+    using reference = json const& ; //prima json&
+
+    const_dictionary_iterator(impl::PNodeD ptr) : m_ptr(ptr){}
+
+    reference operator*() const; // operator dereference 
+    pointer operator->() const; // useful for structs
+    // const because they do not modify the pointer
+
+    //! operator-
+    //! operator+
+    const_dictionary_iterator operator+(int n);
+    const_dictionary_iterator& operator++(); // prefix ++
+    const_dictionary_iterator operator++(int /*dummy*/); // postfix ++
+    bool operator==(const_dictionary_iterator const& rhs) const;
+    bool operator!=(const_dictionary_iterator const& rhs) const;
+
+    private :
+        impl::PNodeD m_ptr; // valore di ritorno begin_list()
+
+};
+
+json::const_dictionary_iterator json::begin_dictionary() const{
+    return{pimpl->headD};
+}
+
+json::const_dictionary_iterator json::end_dictionary() const{
+    return{pimpl->tailD->next};
+}
+
+bool json::const_dictionary_iterator::operator==(const_dictionary_iterator const& rhs) const{
+    return m_ptr == rhs.m_ptr;
+}
+
+bool json::const_dictionary_iterator::operator!=(const_dictionary_iterator const& rhs) const{
+    return !(*this==rhs);
+}
+
+json::const_dictionary_iterator json::const_dictionary_iterator::operator+(int n){
+
+    const_dictionary_iterator temp = *this;
+    for(int i = 0; i<n; ++i){
+        ++temp;
+    }
+    return temp;
+
+}
+
+json::const_dictionary_iterator& json::const_dictionary_iterator::operator++(){
+    m_ptr = m_ptr->next;
+    return *this;
+}
+
+json::const_dictionary_iterator json::const_dictionary_iterator::operator++(int /*dummy*/){
+    const_dictionary_iterator tmp = *this;
+    ++(*this);
+    return tmp;
+}
+
+json::const_dictionary_iterator::reference json::const_dictionary_iterator::operator*() const {
+    return m_ptr->val.second;    
+}
+
+json::const_dictionary_iterator::pointer json::const_dictionary_iterator::operator->() const{
+    return &(m_ptr->val.second);
+}
+
+
 int main(){
     json j;
-    // cout<<"J";
     cin>>j;
-    //?
+
+    json& y = *(j.begin_list()+1);
+
+    json z;
+    // z.set_dictionary();
+    std::pair<std::string, json> l;
+    l.first = "a";
+    l.second.set_number(5);
+    z.insert(l);
+    l.first = "d";
+    l.second.set_number(6);
+    z.insert(l);
+    // cout<<"inserisci z \n";
+    // cin>>z;
+    // std::cout << y["quarta chiave"]["a"];
+
+    y["prima chiave"] = z;
+    // *(j.begin_list()+1)["prima chiave"] = z; // no work for [] (no operator found)
+    
     cout<<"end of stream \n";
-
-    // json& k = j.begin_list();
-    // cout<<k.get_number();
-    json n = j["1"];
-    n=j["2"];
-    n=j["3"];
-    n=j["4"];
-
-    double a = n.get_number();
-    cout<<"a"<<a;
     return 0;
 }
