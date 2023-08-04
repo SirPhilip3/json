@@ -193,12 +193,12 @@ bool json::is_number() const{
     return pimpl->tipo==impl::Tipo::Number;
 }
 
-bool json::is_bool() const{
-    return pimpl->tipo==impl::Tipo::Bool;
-}
-
 bool json::is_null() const{
     return pimpl->tipo==impl::Tipo::Null;
+}
+
+bool json::is_bool() const{
+    return pimpl->tipo==impl::Tipo::Bool;
 }
 
 double& json::get_number(){
@@ -214,13 +214,13 @@ double const& json::get_number() const{
 }
 
 bool& json::get_bool(){
-    if (is_bool()){
+    if (is_bool()){//!
         return pimpl->bool_val;
     }else cout<<"no bool found \n";
 }
 
 bool const& json::get_bool() const{
-    if (is_bool()){
+    if (is_bool()){//!
         return pimpl->bool_val;
     }else cout<<"no bool found \n";
 }
@@ -753,12 +753,8 @@ struct json::list_iterator{
 
     list_iterator(impl::PNodeL ptr) : m_ptr(ptr){}
 
-    reference operator*() const; // operator dereference 
-    pointer operator->() const; // useful for structs
-    // const because they do not modify the pointer
-
-    //! operator-
-    //! operator+
+    reference operator*() const;  
+    pointer operator->() const; 
     list_iterator operator+(int n);
     list_iterator& operator++(); // prefix ++
     list_iterator operator++(int /*dummy*/); // postfix ++
@@ -825,12 +821,8 @@ struct json::const_list_iterator{
 
     const_list_iterator(impl::PNodeL ptr) : m_ptr(ptr){}
 
-    reference operator*() const; // operator dereference 
-    pointer operator->() const; // useful for structs
-    // const because they do not modify the pointer
-
-    //! operator-
-    //! operator+
+    reference operator*() const;  
+    pointer operator->() const; 
     const_list_iterator operator+(int n);
     const_list_iterator& operator++(); // prefix ++
     const_list_iterator operator++(int /*dummy*/); // postfix ++
@@ -891,18 +883,14 @@ json::const_list_iterator::pointer json::const_list_iterator::operator->() const
 struct json::dictionary_iterator{
 
     using iterator_category=std::forward_iterator_tag;//!  per bidirectiornal ho bisogno di prev nella lista
-    using value_type = const json;
-    using pointer = json const*; //prima json*
-    using reference = json const& ; //prima json&
+    using value_type = pair<string, json>; //!!!!!!!!!! va bene per output però per lettura e modifica????????
+    using pointer = pair<string, json>*; //prima json* //!!!!!!!!!!!!
+    using reference = pair<string, json>& ; //prima json& //!!!!!!!!!!!!!!!
 
     dictionary_iterator(impl::PNodeD ptr) : m_ptr(ptr){}
 
-    reference operator*() const; // operator dereference 
-    pointer operator->() const; // useful for structs
-    // const because they do not modify the pointer
-
-    //! operator-
-    //! operator+
+    reference operator*() const; 
+    pointer operator->() const; 
     dictionary_iterator operator+(int n);
     dictionary_iterator& operator++(); // prefix ++
     dictionary_iterator operator++(int /*dummy*/); // postfix ++
@@ -952,29 +940,25 @@ json::dictionary_iterator json::dictionary_iterator::operator++(int /*dummy*/){
 }
 
 json::dictionary_iterator::reference json::dictionary_iterator::operator*() const {
-    return m_ptr->val.second;    
+    return m_ptr->val;    
 }
 
 json::dictionary_iterator::pointer json::dictionary_iterator::operator->() const{
-    return &(m_ptr->val.second);
+    return &(m_ptr->val);
 }
 
 
 struct json::const_dictionary_iterator{
 
     using iterator_category=std::forward_iterator_tag;//!  per bidirectiornal ho bisogno di prev nella lista
-    using value_type = const json;
-    using pointer = json const*; //prima json*
-    using reference = json const& ; //prima json&
+    using value_type = const pair<string, json>; //!!!!!!!!!!!!
+    using pointer = pair<string, json> const*; //prima json* //!!!!!!!!!!
+    using reference = pair<string, json> const& ; //prima json& //!!!!!!!!!!!!
 
     const_dictionary_iterator(impl::PNodeD ptr) : m_ptr(ptr){}
 
-    reference operator*() const; // operator dereference 
-    pointer operator->() const; // useful for structs
-    // const because they do not modify the pointer
-
-    //! operator-
-    //! operator+
+    reference operator*() const;  
+    pointer operator->() const; 
     const_dictionary_iterator operator+(int n);
     const_dictionary_iterator& operator++(); // prefix ++
     const_dictionary_iterator operator++(int /*dummy*/); // postfix ++
@@ -1024,35 +1008,106 @@ json::const_dictionary_iterator json::const_dictionary_iterator::operator++(int 
 }
 
 json::const_dictionary_iterator::reference json::const_dictionary_iterator::operator*() const {
-    return m_ptr->val.second;    
+    return m_ptr->val;    
 }
 
 json::const_dictionary_iterator::pointer json::const_dictionary_iterator::operator->() const{
-    return &(m_ptr->val.second);
+    return &(m_ptr->val);
 }
 
+#include <fstream>
+
+std::ostream& operator<<(std::ostream& lhs, json const& rhs){
+
+    if(rhs.is_list()){
+        lhs<<"[";
+
+        for(auto it = rhs.begin_list(); it!=rhs.end_list(); ++it){
+            if((*it).is_bool()){
+                bool k = (*it).get_bool();
+                string tmp = k ? "true" : "false";
+                lhs << tmp;
+            }else if((*it).is_number()){
+                lhs<<(*it).get_number();
+            }else if((*it).is_string()){
+                lhs<<'"';
+                lhs<<(*it).get_string();
+                lhs<<'"';
+            }else if((*it).is_null()){
+                lhs<<"null";
+            }else{
+                lhs<<(*it);
+            }
+            auto tmp = it;
+            if(++tmp!=rhs.end_list()) {
+                lhs<<',';
+            }
+            
+        }
+
+        lhs<<"]";
+
+    }else if(rhs.is_dictionary()) {
+        lhs<<"{";
+
+        for(auto it = rhs.begin_dictionary(); it!=rhs.end_dictionary(); ++it){
+
+            lhs<<'"'<<(*it).first<<"\":";
+
+            if((*it).second.is_bool()){
+                bool k = (*it).second.get_bool();
+                string tmp = k ? "true" : "false";
+                lhs << tmp;
+            }else if((*it).second.is_number()){
+                lhs<<(*it).second.get_number();
+            }else if((*it).second.is_string()){
+                lhs<<'"';
+                lhs<<(*it).second.get_string();
+                lhs<<'"';
+            }else if((*it).second.is_null()){
+                lhs<<"null";
+            }else{
+
+                lhs<<(*it).second;
+
+            }
+            auto tmp = it;
+            if(++tmp!=rhs.end_dictionary()) {
+                lhs<<',';
+            }
+        }
+
+        lhs<<"}";
+    }
+
+    return lhs;
+
+}
 
 int main(){
     json j;
     cin>>j;
 
-    json& y = *(j.begin_list()+1);
+    std::ofstream out("output.json");
+    out<<j;
 
-    json z;
-    // z.set_dictionary();
-    std::pair<std::string, json> l;
-    l.first = "a";
-    l.second.set_number(5);
-    z.insert(l);
-    l.first = "d";
-    l.second.set_number(6);
-    z.insert(l);
-    // cout<<"inserisci z \n";
-    // cin>>z;
-    // std::cout << y["quarta chiave"]["a"];
+    // json& y = *(j.begin_list()+1);
 
-    y["prima chiave"] = z;
-    // *(j.begin_list()+1)["prima chiave"] = z; // no work for [] (no operator found)
+    // json z;
+    // // z.set_dictionary();
+    // std::pair<std::string, json> l;
+    // l.first = "a";
+    // l.second.set_number(5);
+    // z.insert(l);
+    // l.first = "d";
+    // l.second.set_number(6);
+    // z.insert(l);
+    // // cout<<"inserisci z \n";
+    // // cin>>z;
+    // // std::cout << y["quarta chiave"]["a"];
+
+    // // y["prima chiave"] = z;
+    // (*(++j.begin_list()))["prima chiave"] = z;
     
     cout<<"end of stream \n";
     return 0;
