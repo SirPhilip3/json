@@ -1,4 +1,3 @@
-
 #include "json.hpp"
 
 using namespace std;
@@ -204,37 +203,61 @@ bool json::is_bool() const{
 double& json::get_number(){
     if (is_number()){
         return pimpl->number_val;
-    }else cout<<"no number found \n";
+    }else {
+        json_exception not_a_number;
+        not_a_number.msg = "the json is not a number , invalid operation";
+        throw not_a_number;
+    }
 }
 
 double const& json::get_number() const{
     if (is_number()){
         return pimpl->number_val;
-    }else cout<<"no number found \n";
+    }else {
+        json_exception not_a_number;
+        not_a_number.msg = "the json is not a number , invalid operation";
+        throw not_a_number;
+    }
 }
 
 bool& json::get_bool(){
     if (is_bool()){//!
         return pimpl->bool_val;
-    }else cout<<"no bool found \n";
+    }else {
+        json_exception not_a_bool;
+        not_a_bool.msg = "the json is not a boolean , invalid operation";
+        throw not_a_bool;
+    }
 }
 
 bool const& json::get_bool() const{
     if (is_bool()){//!
         return pimpl->bool_val;
-    }else cout<<"no bool found \n";
+    }else {
+        json_exception not_a_bool;
+        not_a_bool.msg = "the json is not a boolean , invalid operation";
+        throw not_a_bool;
+    }
 }
 
 string& json::get_string(){
     if(is_string()){
         return pimpl->string_val;
-    }else cout<<"no string found \n";
+    }else {
+        json_exception not_a_string;
+        not_a_string.msg = "the json is not a string , invalid operation";
+        throw not_a_string;
+    }
 }
 
 string const& json::get_string() const{
     if(is_string()){
         return pimpl->string_val;
-    }else cout<<"no string found \n";
+    }else {
+        json_exception not_a_string;
+        not_a_string.msg = "the json is not a string , invalid operation";
+        throw not_a_string;
+    }
 }
 
 //! non posso modificare il json però posso comunque ritornare il valore corretto se trovato
@@ -242,13 +265,24 @@ json const& json::operator[](std::string const& s) const{
     if(is_dictionary()){
         impl::PNodeD tmp = pimpl->headD;
         bool found = false;
+
         while (tmp != nullptr&&!found)
         {
-            if(tmp->val.first==s) {found=true; return tmp->val.second;}
-            tmp=tmp->next;           
+            if(tmp->val.first==s) found=true;
+            else tmp = tmp->next;   
         }
 
-    }else cout<<"not a dictionary \n";
+        if(found) return tmp->val.second;
+
+        json_exception not_found;
+        not_found.msg = "The json with corresponding key : "+ s +" does not exist in the dictionary";
+        throw not_found;
+
+    }else{
+        json_exception not_a_dictionary;
+        not_a_dictionary.msg = "Can't perform this action, the json object isn't a dictionary";
+        throw not_a_dictionary;
+    } 
 
 }
 
@@ -274,7 +308,11 @@ json& json::operator[](std::string const& s){
         insert(p);
         return pimpl->tailD->val.second;
 
-    }else cout<<"not a dictionary \n";
+    }else{
+        json_exception not_a_dictionary;
+        not_a_dictionary.msg = "Can't perform this action, the json object isn't a dictionary";
+        throw not_a_dictionary;
+    }
 
 }
 
@@ -286,10 +324,14 @@ void json::set_list(){
 
     pimpl = new impl;
     pimpl->tipo = impl::Tipo::List;
-    pimpl->headL = new impl::NodeL;
-    pimpl->headL->next=nullptr;
-    pimpl->headL->val.pimpl->tipo = impl::Tipo::Null;
-    pimpl->tailL = pimpl->headL;
+    //! lista vuota deve fare non lista con 1 null
+    pimpl->headL = nullptr;
+    pimpl->tailL = nullptr;
+
+    // pimpl->headL = new impl::NodeL;
+    // pimpl->headL->next=nullptr;
+    // pimpl->headL->val.pimpl->tipo = impl::Tipo::Null;
+    // pimpl->tailL = pimpl->headL;
 
     pimpl->headD = nullptr;
     pimpl->tailD = nullptr;
@@ -302,10 +344,14 @@ void json::set_dictionary(){
 
     pimpl = new impl;
     pimpl->tipo = impl::Tipo::Dictionary;
-    pimpl->headD = new impl::NodeD;
-    pimpl->headD->next=nullptr;
-    pimpl->headD->val.second.pimpl->tipo = impl::Tipo::Null;
-    pimpl->tailD = pimpl->headD;
+    //! devo creare un diozionario vuoto non con 1 null dentro
+    pimpl->headD = nullptr;
+    pimpl->tailD = nullptr;
+
+    // pimpl->headD = new impl::NodeD;
+    // pimpl->headD->next=nullptr;
+    // pimpl->headD->val.second.pimpl->tipo = impl::Tipo::Null;
+    // pimpl->tailD = pimpl->headD;
 
     pimpl->headL = nullptr;
     pimpl->tailL = nullptr;
@@ -369,19 +415,24 @@ void json::set_null(){
 
 
 // push_front 
-// NOT USED FOR NOW
 void json::push_front(json const& j){ // equivale a prepend
-    
-    pimpl->tipo = impl::Tipo::List;//! better placement
+    if(is_list()){
+        // pimpl->tipo = impl::Tipo::List;//! better placement
 
-    impl::PNodeL newNode = new impl::NodeL;
-    newNode->val = j;
-    newNode->next = pimpl->headL;
+        impl::PNodeL newNode = new impl::NodeL;
+        newNode->val = j;
+        newNode->next = pimpl->headL;
 
-    if (pimpl->headL == nullptr) {
-        pimpl->tailL = newNode;
+        if (pimpl->headL == nullptr) {
+            pimpl->tailL = newNode;
+        }
+        pimpl->headL = newNode;
+    }else{
+        json_exception invalid_push_front;
+        invalid_push_front.msg = "push_front() can only be called on a list";
+        throw invalid_push_front;
     }
-    pimpl->headL = newNode;
+
 
 }
 
@@ -389,18 +440,23 @@ void json::push_front(json const& j){ // equivale a prepend
 //push_back
 void json::push_back(json const& j){ // alla fine equivale a append
 
-    pimpl->tipo = impl::Tipo::List;//! better placement
+    // pimpl->tipo = impl::Tipo::List;//! better placement
+    if(is_list()){
+        impl::PNodeL tmp = new impl::NodeL;
+        tmp->val = j;
+        tmp->next = nullptr;
 
-    impl::PNodeL tmp = new impl::NodeL;
-    tmp->val = j;
-    tmp->next = nullptr;
-
-    if(pimpl->tailL!=nullptr){
-        pimpl->tailL->next = tmp;
-        pimpl->tailL = tmp;
-    }else {
-        pimpl->headL = tmp;
-        pimpl->tailL = tmp;
+        if(pimpl->tailL!=nullptr){
+            pimpl->tailL->next = tmp;
+            pimpl->tailL = tmp;
+        }else {
+            pimpl->headL = tmp;
+            pimpl->tailL = tmp;
+        }
+    }else{
+        json_exception invalid_push_front;
+        invalid_push_front.msg = "push_back() can only be called on a list";
+        throw invalid_push_front;
     }
 
 }
@@ -409,18 +465,23 @@ void json::push_back(json const& j){ // alla fine equivale a append
 //inserisci un elemento in un dizionario
 void json::insert(std::pair<std::string, json> const& d){
 
-    pimpl->tipo= impl::Tipo::Dictionary;//! better placement
+    // pimpl->tipo= impl::Tipo::Dictionary;//! better placement
+    if(is_dictionary()){
+        impl::PNodeD tmp = new impl::NodeD;  
+        tmp->val = d;
+        tmp->next = nullptr;
 
-    impl::PNodeD tmp = new impl::NodeD;  
-    tmp->val = d;
-    tmp->next = nullptr;
-
-    if(pimpl->tailD!=nullptr){
-        pimpl->tailD->next = tmp;
-        pimpl->tailD = tmp;
-    }else {
-        pimpl->headD = tmp;
-        pimpl->tailD = tmp;
+        if(pimpl->tailD!=nullptr){
+            pimpl->tailD->next = tmp;
+            pimpl->tailD = tmp;
+        }else {
+            pimpl->headD = tmp;
+            pimpl->tailD = tmp;
+        }
+    }else{
+        json_exception invalid_push_front;
+        invalid_push_front.msg = "insert() can only be called on a dictionary";
+        throw invalid_push_front;
     }
 }
 
@@ -434,7 +495,7 @@ json get_lista(std::istream& is){
     // legge una lista può leggere dei dizionari
     // finchè non si chiude la lista
     json j;
-    // j.set_list();
+    j.set_list();
     is>>std::skipws;
     // is>>std::ws;
 
@@ -542,7 +603,7 @@ json dell(istream& is){
 json get_dictionary(istream& is){
 
     json d; 
-    // d.set_dictionary();
+    d.set_dictionary();
     std::pair<string , json> El_dict;
     is>>std::skipws;
     // is>>std::ws;
@@ -767,11 +828,24 @@ struct json::list_iterator{
 };
 
 json::list_iterator json::begin_list(){
-    return{pimpl->headL};
+    if(is_list()){
+        return{pimpl->headL};
+    }else{
+        json_exception invalid_list_iterator_usage;
+        invalid_list_iterator_usage.msg = "begin_list() can not be called on a non-list json object";
+        throw invalid_list_iterator_usage;
+    }
 }
 
 json::list_iterator json::end_list(){
-    return{pimpl->tailL->next};
+    if(is_list()){
+        // return{pimpl->tailL->next};
+        return{nullptr};
+    }else{
+        json_exception invalid_list_iterator_usage;
+        invalid_list_iterator_usage.msg = "end_list() can not be called on a non-list json object";
+        throw invalid_list_iterator_usage;
+    }
 }
 
 bool json::list_iterator::operator==(list_iterator const& rhs) const{
@@ -835,11 +909,24 @@ struct json::const_list_iterator{
 };
 
 json::const_list_iterator json::begin_list() const{
-    return{pimpl->headL};
+    if(is_list()){
+        return{pimpl->headL};
+    }else{
+        json_exception invalid_list_iterator_usage;
+        invalid_list_iterator_usage.msg = "begin_list() can not be called on a non-list json object";
+        throw invalid_list_iterator_usage;
+    }
 }
 
 json::const_list_iterator json::end_list() const{
-    return{pimpl->tailL->next};
+    if(is_list()){
+        // return{pimpl->tailL->next};
+        return{nullptr};
+    }else{
+        json_exception invalid_list_iterator_usage;
+        invalid_list_iterator_usage.msg = "end_list() can not be called on a non-list json object";
+        throw invalid_list_iterator_usage;
+    }
 }
 
 bool json::const_list_iterator::operator==(const_list_iterator const& rhs) const{
@@ -903,11 +990,24 @@ struct json::dictionary_iterator{
 };
 
 json::dictionary_iterator json::begin_dictionary(){
-    return{pimpl->headD};
+    if(is_dictionary()){
+        return{pimpl->headD};
+    }else{
+        json_exception invalid_dictionary_iterator_usage;
+        invalid_dictionary_iterator_usage.msg = "begin_dictionary() can not be called on a non-dictionary json object";
+        throw invalid_dictionary_iterator_usage;
+    }
 }
 
 json::dictionary_iterator json::end_dictionary(){
-    return{pimpl->tailD->next};
+    if(is_dictionary()){
+        // return{pimpl->tailD->next};
+        return{nullptr};
+    }else {
+        json_exception invalid_dictionary_iterator_usage;
+        invalid_dictionary_iterator_usage.msg = "end_dictionary() can not be called on a non-dictionary json object";
+        throw invalid_dictionary_iterator_usage;
+    }   
 }
 
 bool json::dictionary_iterator::operator==(dictionary_iterator const& rhs) const{
@@ -971,11 +1071,24 @@ struct json::const_dictionary_iterator{
 };
 
 json::const_dictionary_iterator json::begin_dictionary() const{
-    return{pimpl->headD};
+    if(is_dictionary()){
+        return{pimpl->headD};
+    }else{
+        json_exception invalid_dictionary_iterator_usage;
+        invalid_dictionary_iterator_usage.msg = "begin_dictionary() can not be called on a non-dictionary json object";
+        throw invalid_dictionary_iterator_usage;
+    }
 }
 
 json::const_dictionary_iterator json::end_dictionary() const{
-    return{pimpl->tailD->next};
+    if(is_dictionary()){
+        // return{pimpl->tailD->next};
+        return{nullptr};
+    }else {
+        json_exception invalid_dictionary_iterator_usage;
+        invalid_dictionary_iterator_usage.msg = "end_dictionary() can not be called on a non-dictionary json object";
+        throw invalid_dictionary_iterator_usage;
+    }
 }
 
 bool json::const_dictionary_iterator::operator==(const_dictionary_iterator const& rhs) const{
@@ -1014,8 +1127,6 @@ json::const_dictionary_iterator::reference json::const_dictionary_iterator::oper
 json::const_dictionary_iterator::pointer json::const_dictionary_iterator::operator->() const{
     return &(m_ptr->val);
 }
-
-#include <fstream>
 
 std::ostream& operator<<(std::ostream& lhs, json const& rhs){
 
@@ -1084,13 +1195,36 @@ std::ostream& operator<<(std::ostream& lhs, json const& rhs){
 
 }
 
+//! TEMPORARY CODE
+/*
+    |
+    |
+    V
+*/
+
+#include <fstream>
+
 int main(){
     json j;
-    cin>>j;
+    try{
+        cin>>j;
+    }catch (const json_exception& exc){
+        cout<<"exception "<<exc.msg<<endl;
+    }
+
+    // try{
+    //     json& k = *(j.begin_list());
+    // }catch (const json_exception& exc){
+    //     cout<<"exception "<<exc.msg<<endl;
+    // }
+    
 
     std::ofstream out("output.json");
-    out<<j;
-
+    try{
+        out<<j;
+    }catch (const json_exception& exc){
+        cout<<"exception "<<exc.msg<<" !!"<<endl;
+    }
     // json& y = *(j.begin_list()+1);
 
     // json z;
