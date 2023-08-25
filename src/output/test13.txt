@@ -1,9 +1,0 @@
-[
-    "prima stringa",
-    "seconda stringa",
-    34.5,
-    true,
-    null, 
-    [1,2,false,43]
-]
-

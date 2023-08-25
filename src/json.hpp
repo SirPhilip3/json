@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
 #include <limits>
+#include <assert.h>
+#include <fstream>
 
 struct json_exception {
 	std::string msg;

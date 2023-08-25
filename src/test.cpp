@@ -14,24 +14,24 @@ struct json::impl{
     struct NodeL
     {
         json val;
-        NodeL* next;
+        NodeL* next=nullptr;
     };
 
     typedef NodeL* PNodeL;
 
-    PNodeL headL;
-    PNodeL tailL;
+    PNodeL headL=nullptr;
+    PNodeL tailL=nullptr;
 
     struct NodeD
     {
         std::pair<std::string, json> val;
-        NodeD* next;
+        NodeD* next=nullptr;
     };
 
     typedef NodeD* PNodeD;
 
-    PNodeD headD;
-    PNodeD tailD;
+    PNodeD headD=nullptr;
+    PNodeD tailD=nullptr;
 };
 
 json::json(){
@@ -74,6 +74,7 @@ json::~json(){
 
         delete pimpl;
         pimpl = nullptr;
+        std::cout<<"";//! risoluzione per crash con -O2
     }
 
 }
@@ -90,13 +91,15 @@ json::json(json const& j){
 
     if(j.is_list()){
         impl::PNodeL pc = j.pimpl->headL;
+        set_list();
         while (pc!=nullptr){
-            push_back(pc->val);
+            push_back(pc->val);//!
             pc=pc->next;
         }
     }else if(j.is_dictionary()) {
         impl::PNodeD pc = j.pimpl->headD;
-        while (pc!=nullptr){ //! con dictionary all'iterno
+        set_dictionary();
+        while (pc!=nullptr){ 
             insert(pc->val);
             pc=pc->next;
         }
@@ -112,19 +115,37 @@ json::json(json const& j){
 }
 
 //? MOVE SEMANTICS
+//! provoca errori in load_save_file
+
 
 // move constructor
-json::json(json&& j){
-    *this=move(j);
+json::json(json&& j) : pimpl(j.pimpl) { //! fixes uninitalized values problems
+    j.pimpl = nullptr;
 }
+
+//! imple precedente
+// json::json(json&& j) { 
+//     *this = move(j); 
+// }
+
 
 //move assignment operator
 json& json::operator=(json&& j){
-    if(this!=&j){
+    // if(pimpl == nullptr) {cout<<"ATTENTION \n";}
+    // if(pimpl == nullptr||this==nullptr ){
+    //     pimpl = j.pimpl;
+    //     j.pimpl = nullptr;
+    // } else
+     if(this!=&j){
+        // auto temp = pimpl;
+        // if(pimpl != nullptr) delete pimpl;
         delete pimpl;
         pimpl = j.pimpl;
         j.pimpl = nullptr;
+
+        // delete temp;
     }
+
     return *this;
 }
 
@@ -157,13 +178,15 @@ json& json::operator=(json const& j){
         
         if(j.is_list()){
             impl::PNodeL pc = j.pimpl->headL;
+            set_list();
             while (pc!=nullptr){
-                push_back(pc->val); //! non posso usare altrimenti memory leaks
+                push_back(pc->val); //!
                 pc=pc->next;
             }
         }else if(j.is_dictionary()) {
             impl::PNodeD pc = j.pimpl->headD;
-            while (pc!=nullptr){ 
+            set_dictionary();
+            while (pc!=nullptr){
                 insert(pc->val);
                 pc=pc->next;
             }
@@ -221,7 +244,7 @@ double const& json::get_number() const{
 }
 
 bool& json::get_bool(){
-    if (is_bool()){//!
+    if (is_bool()){
         return pimpl->bool_val;
     }else {
         json_exception not_a_bool;
@@ -231,7 +254,7 @@ bool& json::get_bool(){
 }
 
 bool const& json::get_bool() const{
-    if (is_bool()){//!
+    if (is_bool()){
         return pimpl->bool_val;
     }else {
         json_exception not_a_bool;
@@ -489,8 +512,6 @@ void json::insert(std::pair<std::string, json> const& d){
 // //? forward declaration
 json E(std::istream& is);
 
-json dell(istream& is);
-
 json get_lista(std::istream& is){
     // legge una lista può leggere dei dizionari
     // finchè non si chiude la lista
@@ -504,13 +525,13 @@ json get_lista(std::istream& is){
 
         if(p=='\n') {
             is.ignore(1,'\n');
-            if(is) p=(is>>std::ws).peek(); //!controllo BHO
+            if(is) p=(is>>std::ws).peek(); 
         }
         if(p==']'||p=='}') return j;
 
         if(p!=','){
             // if(p=='{'||p=='[') is.putback(p); //? fixes loop with [[..]]
-            j.push_back(E(is));  
+            j.push_back(E(is)); //!
         }else is>>p;
 
         if(is) p=(is>>std::ws).peek(); // per peek deve essere valido
@@ -552,51 +573,9 @@ string dic_str(istream& is){
     s.erase(s.length()-1);
     //?
     is>>std::skipws;
-    std::cout<<"--"<<s<<'\n';
+    // std::cout<<"--"<<s<<'\n';
     is.ignore(std::numeric_limits<std::streamsize>::max(), ':');// ignora il rest0 , spazi vuoti etc fino a ,
     return s;
-}
-
-//!useless
-json get_lista_single(std::istream& is){
-
-    json j;
-    j.set_list();
-    // is>>std::skipws;
-    // is>>std::ws;
-
-    char p=(is>>std::ws).peek();
-
-    if(p=='\n') {
-        is.ignore(1,'\n'); 
-        if(is) p=(is>>std::ws).peek();
-    } //! p is never read
-
-    j.push_back(E(is));
-
-    return j;
-
-}
-
-//!useless
-json dell(istream& is){
-
-    char p=0;
-    json j;
-    // is>>std::skipws;
-    // is>>std::ws;//! skips ws for peek
-
-    p=(is>>std::ws).peek();
-
-    if(p=='['||p=='{'){
-        // is.putback(p);
-        j = move(E(is));    
-    }else{
-        // is.putback(p);
-        j = move(get_lista_single(is));
-    }   
-
-    return j;
 }
 
 
@@ -646,7 +625,7 @@ json number(istream& is){
 
     is>>num;
     //?
-    std::cout<<num<<" --num \n";
+    // std::cout<<num<<" --num \n";
     j.set_number(num);
 
     char n = (is>>std::ws).peek();
@@ -681,7 +660,7 @@ json strings(istream& is){
     
     is>>std::skipws;
     // is>>std::ws;
-    std::cout<<"--"<<s<<'\n';
+    // std::cout<<"--"<<s<<'\n';
 
     j.set_string(s); // potrei chiamarlo
     char n = (is>>std::ws).peek();
@@ -694,7 +673,7 @@ json strings(istream& is){
 
 json null(istream& is){
     //?
-    std::cout<<"--null \n"; 
+    // std::cout<<"--null \n"; 
     json j;
     is>>std::skipws;
     // is>>std::ws;
@@ -718,15 +697,19 @@ json boolean(istream& is){
 
     if(p=='t'){
         //?
-        std::cout<<"--true \n";
+        // std::cout<<"--true \n";
         j.set_bool(true);
         is.ignore(3);
     } 
     else if(p=='f'){
         //?
-        std::cout<<"--false \n";
+        // std::cout<<"--false \n";
         j.set_bool(false);
         is.ignore(4);
+    }else {
+        json_exception invalid_json;
+        invalid_json.msg = "the json is invalid";
+        throw invalid_json;
     }
 
     char n = (is>>std::ws).peek();
@@ -743,10 +726,10 @@ json E(istream& is){
     char p=0;
     json j;
     is>>std::skipws;
-    // is>>std::ws;
 
     is>>p;
     if(p=='\n') {is>>p;}
+    //! posso utilizzare switch case
     if((p>='0' && p<='9')||p=='-'){
         is.putback(p);
 
@@ -754,18 +737,18 @@ json E(istream& is){
 
     }else if(p=='['){
         //?
-        std::cout<<"--[ \n";
+        // std::cout<<"--[ \n";
         j=move(get_lista(is));
         is>>p;
         //?
-        std::cout<<"--] \n";
+        // std::cout<<"--] \n";
     }else if(p=='{'){
         //?
-        std::cout<<"--{ \n";
+        // std::cout<<"--{ \n";
         j=move(get_dictionary(is));
         is>>p;
         //?
-        std::cout<<"--} \n";
+        // std::cout<<"--} \n";
     }else if(p!='"'){
         // o è null o è un buleano
         if (p=='n'){
@@ -777,7 +760,6 @@ json E(istream& is){
         }
     }else{
         j=move(strings(is));
-
     }
 
     return j;
@@ -794,10 +776,14 @@ istream& operator>>(istream& is, json& j){
         j=move(get_lista(is));
     }else if(p=='{'){
         j=move(get_dictionary(is));
+    }else {
+        is.putback(p);
+        j=move(E(is));
+        // json_exception invalid_json;
+        // invalid_json.msg = "the json can only be a list or a dictionary, incorrect formatting";
+        // throw invalid_json;
     }
     
-    //?
-    cout<<"end of stream \n";
     return is;
 }
 
@@ -1139,7 +1125,10 @@ std::ostream& operator<<(std::ostream& lhs, json const& rhs){
                 string tmp = k ? "true" : "false";
                 lhs << tmp;
             }else if((*it).is_number()){
-                lhs<<(*it).get_number();
+                // lhs<<std::fixed; //! fixa numeri lunghi ma non i decimali
+                // servirebbe set_precision
+                lhs<<(*it).get_number();//! numeri molto grandi hanno precisione minore es 23423141 divente 23420000
+                                        //! numeri con tanti decimali vengono troncati 3.43543547896 diventa 3.43543
             }else if((*it).is_string()){
                 lhs<<'"';
                 lhs<<(*it).get_string();
@@ -1170,6 +1159,7 @@ std::ostream& operator<<(std::ostream& lhs, json const& rhs){
                 string tmp = k ? "true" : "false";
                 lhs << tmp;
             }else if((*it).second.is_number()){
+                // lhs<<std::fixed;
                 lhs<<(*it).second.get_number();
             }else if((*it).second.is_string()){
                 lhs<<'"';
@@ -1182,6 +1172,7 @@ std::ostream& operator<<(std::ostream& lhs, json const& rhs){
                 lhs<<(*it).second;
 
             }
+            
             auto tmp = it;
             if(++tmp!=rhs.end_dictionary()) {
                 lhs<<',';
@@ -1189,60 +1180,19 @@ std::ostream& operator<<(std::ostream& lhs, json const& rhs){
         }
 
         lhs<<"}";
+    }else{
+        if(rhs.is_bool()){
+            string tmp = rhs.get_bool() ? "true" : "false";
+            lhs << tmp;
+        }else if(rhs.is_number()){
+            lhs<<rhs.get_number();
+        }else if(rhs.is_string()){
+            lhs<<rhs.get_string();
+        }else if(rhs.is_null()){
+            lhs<<"null";
+        }
     }
 
     return lhs;
 
-}
-
-//! TEMPORARY CODE
-/*
-    |
-    |
-    V
-*/
-
-#include <fstream>
-
-int main(){
-    json j;
-    try{
-        cin>>j;
-    }catch (const json_exception& exc){
-        cout<<"exception "<<exc.msg<<endl;
-    }
-
-    // try{
-    //     json& k = *(j.begin_list());
-    // }catch (const json_exception& exc){
-    //     cout<<"exception "<<exc.msg<<endl;
-    // }
-    
-
-    std::ofstream out("output.json");
-    try{
-        out<<j;
-    }catch (const json_exception& exc){
-        cout<<"exception "<<exc.msg<<" !!"<<endl;
-    }
-    // json& y = *(j.begin_list()+1);
-
-    // json z;
-    // // z.set_dictionary();
-    // std::pair<std::string, json> l;
-    // l.first = "a";
-    // l.second.set_number(5);
-    // z.insert(l);
-    // l.first = "d";
-    // l.second.set_number(6);
-    // z.insert(l);
-    // // cout<<"inserisci z \n";
-    // // cin>>z;
-    // // std::cout << y["quarta chiave"]["a"];
-
-    // // y["prima chiave"] = z;
-    // (*(++j.begin_list()))["prima chiave"] = z;
-    
-    cout<<"end of stream \n";
-    return 0;
 }
