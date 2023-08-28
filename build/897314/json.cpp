@@ -103,7 +103,6 @@ json::json(json const& j){
             pc=pc->next;
         }
     }else{
-
         pimpl->tipo = j.pimpl->tipo;
         pimpl->number_val = j.pimpl->number_val;
         pimpl->bool_val = j.pimpl->bool_val;
@@ -462,7 +461,7 @@ void json::insert(std::pair<std::string, json> const& d){
 }
 
 
-// //? forward declaration
+//? forward declaration
 json E(std::istream& is);
 
 json get_lista(std::istream& is){
@@ -520,6 +519,14 @@ string dic_str(istream& is){
     
     s.erase(s.length()-1);
     is>>std::skipws;
+
+    p=(is>>std::ws).peek();
+    if(p!=':') {
+        json_exception invalid_json;
+        invalid_json.msg = "There is no ':' after key value \"" + s +'\"' ;
+        throw invalid_json;
+    }
+    
     is.ignore(std::numeric_limits<std::streamsize>::max(), ':');
     return s;
 }
@@ -568,7 +575,13 @@ json number(istream& is){
     j.set_number(num);
 
     char n = (is>>std::ws).peek();
-    // char n = is.peek();
+    
+    if (n!=','&&n!=']'&&n!='}'){
+        json_exception invalid_json;
+        invalid_json.msg = "Invalid number inserted";
+        throw invalid_json;
+    }
+
     if(n=='\n') {is.ignore(1, '\n'); n=(is>>std::ws).peek();}
     if(n=='}'||n==']') return j;
     is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
@@ -599,7 +612,7 @@ json strings(istream& is){
     
     is>>std::skipws;
 
-    j.set_string(s); 
+    j.set_string(s);
     char n = (is>>std::ws).peek();
     if(n=='\n') {is.ignore(1, '\n'); n=(is>>std::ws).peek();}
     if(n=='}'||n==']') return j;
@@ -607,13 +620,53 @@ json strings(istream& is){
     return j;
 }
 
+// function to ceck if written correctly true, false or null 
+//! è dipendente da key grandi e piccole?
+
+bool ceck_bool_correctness(short int b_Type, istream& is){
+
+    short int letters;
+    string lettersC;
+
+    if(b_Type==0){ //for null
+        letters = 3;
+        lettersC = "ull";
+    }else if(b_Type==1){ //for true
+        letters  = 3;
+        lettersC = "rue";
+    }else if(b_Type==2){ //for false
+        letters = 4;
+        lettersC = "alse";
+    }
+
+    bool valid = true;
+    char l;
+    for(short int i = 0; i<letters&&valid; i++){
+        is>>l;
+        if(lettersC.empty()||l!=lettersC.at(0)) valid=false;
+        else lettersC.erase(0,1);
+    }
+    
+    l=(is>>std::ws).peek();
+    if (l!=','&&l!=']'&&l!='}') valid=false;
+
+    return valid;
+}
+
 json null(istream& is){
 
     json j;
     is>>std::skipws;
-    j.set_null();
 
-    is.ignore(3);
+    if(ceck_bool_correctness(0,is)) j.set_null();
+    else {
+        json_exception invalid_json;
+        invalid_json.msg = "The data is in an incorrect format, from null branch";
+        throw invalid_json;
+    }
+    // j.set_null();
+
+    // is.ignore(3);
     char n = (is>>std::ws).peek();
     if(n=='\n') {is.ignore(1, '\n'); n=(is>>std::ws).peek();}
     if(n=='}'||n==']') return j;
@@ -628,12 +681,23 @@ json boolean(istream& is){
     is>>p;
 
     if(p=='t'){
-        j.set_bool(true);
-        is.ignore(3);
-    } 
-    else if(p=='f'){
-        j.set_bool(false);
-        is.ignore(4);
+        if(ceck_bool_correctness(1,is)) j.set_bool(true);
+        else {
+            json_exception invalid_json;
+            invalid_json.msg = "The data is in an incorrect format, from true branch";
+            throw invalid_json;
+        }
+        // j.set_bool(true);
+        // is.ignore(3); //! dovrei controllare se ho scritto realmente true prima di settare
+    }else if(p=='f'){
+        if(ceck_bool_correctness(2,is)) j.set_bool(false);
+        else {
+            json_exception invalid_json;
+            invalid_json.msg = "The data is in an incorrect format, from false branch";
+            throw invalid_json;
+        }
+        // j.set_bool(false);
+        // is.ignore(4);
     }
 
     char n = (is>>std::ws).peek();
@@ -652,7 +716,8 @@ json E(istream& is){
 
     is>>p;
     if(p=='\n') {is>>p;}
-    if((p>='0' && p<='9')||p=='-'){
+
+    if((p>='0' && p<='9')||p=='-'||p=='.'){
         is.putback(p);
         j=move(number(is));
     }else if(p=='['){
@@ -665,9 +730,13 @@ json E(istream& is){
         if (p=='n'){
             j=move(null(is));
         } 
-        else {
+        else if(p=='t'||p=='f'){
             is.putback(p);
             j=move(boolean(is));
+        }else {
+            json_exception invalid_json;
+            invalid_json.msg = "The data is in an incorrect format";
+            throw invalid_json;
         }
     }else{
         j=move(strings(is));
@@ -686,10 +755,15 @@ istream& operator>>(istream& is, json& j){
         j=move(get_lista(is));
     }else if(p=='{'){
         j=move(get_dictionary(is));
-    }else {
-        is.putback(p);
-        j=move(E(is));
+    }else{
+        json_exception invalid_json;
+        invalid_json.msg = "The data is in an incorrect format";
+        throw invalid_json;
     }
+    // }else {
+    //     is.putback(p);
+    //     j=move(E(is));
+    // }
 
     return is;
 }
@@ -1023,7 +1097,8 @@ std::ostream& operator<<(std::ostream& lhs, json const& rhs){
                 string tmp = (*it).get_bool() ? "true" : "false";
                 lhs << tmp;
             }else if((*it).is_number()){
-                lhs<<std::fixed;
+                // printf("%.*g", std::numeric_limits<double>::max_digits10, (*it).get_number());
+                // lhs<<std::fixed;
                 lhs<<(*it).get_number();
             }else if((*it).is_string()){
                 lhs<<'"';
@@ -1054,7 +1129,8 @@ std::ostream& operator<<(std::ostream& lhs, json const& rhs){
                 string tmp = (*it).second.get_bool() ? "true" : "false";
                 lhs << tmp;
             }else if((*it).second.is_number()){
-                lhs<<std::fixed;
+                // printf("%.*g", std::numeric_limits<double>::max_digits10, (*it).second.get_number());
+                // lhs<<std::fixed;
                 lhs<<(*it).second.get_number();
             }else if((*it).second.is_string()){
                 lhs<<'"';
@@ -1079,6 +1155,8 @@ std::ostream& operator<<(std::ostream& lhs, json const& rhs){
             string tmp = rhs.get_bool() ? "true" : "false";
             lhs << tmp;
         }else if(rhs.is_number()){
+            // printf("%.*g", std::numeric_limits<double>::max_digits10, rhs.get_number());
+            // lhs<<std::fixed;
             lhs<<rhs.get_number();
         }else if(rhs.is_string()){
             lhs<<rhs.get_string();

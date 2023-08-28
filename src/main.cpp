@@ -1,4 +1,4 @@
-#include "j.cpp"
+#include "j_consegna.cpp"
 // #include "json.hpp"
 //! AGGIUNGERE CONTROLLI PER GRAMMATICA ERRATA
 #include <chrono>
@@ -9,6 +9,82 @@ using namespace std::chrono;
 #include <cassert>
 
 int main(){
+
+    try
+    {
+        json j;
+        cin>>j;
+        cout<<j;
+    }
+    catch(const json_exception& e)
+    {
+        std::cout << e.msg<< '\n';
+    }
+    /*
+    try{
+    std::string newFile;
+    for (int i=1; i<101;i++){
+        if(i!=32){
+            newFile = "/home/filippo/projects_c++/json/src/output/custom_test/json_test/"+std::to_string(i)+".txt";
+            std::cout<<"Apro il file "<<i<<std::endl;
+            std::ifstream file(newFile);
+            if (!file.is_open()) {
+                std::cout << "Failed to open the file." << std::endl;
+                return 1;
+            }
+            std::stringstream ss;
+            ss << file.rdbuf();
+            file.close();
+
+
+            json data;
+            std::ofstream out("/home/filippo/projects_c++/json/src/output/tests/test_output/"+std::to_string(i)+".json");
+            auto start = high_resolution_clock::now();
+            try{
+                ss>>data;
+            }catch (const json_exception& exc){
+                out<<"exception :"<<exc.msg<<endl;
+            }
+            auto stop = high_resolution_clock::now();
+            auto duration = duration_cast<microseconds>(stop - start);
+            std::cout << "Read : "<< duration.count() << " microseconds" << endl;
+            
+            auto start2 = high_resolution_clock::now();
+            try{
+                out << data << std::endl;
+            }catch (const json_exception& exc){
+                out<<"exception :"<<exc.msg<<endl;
+            }
+            auto stop2 = high_resolution_clock::now();
+            auto duration2 = duration_cast<microseconds>(stop2 - start2);
+            std::cout << "Write : "<< duration2.count() << " microseconds" << endl;
+            out.close();
+        }
+    }
+    }catch(const json_exception& e){
+        cout<<e.msg<<endl;
+    }
+    */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     // json original;
     // try {
@@ -113,49 +189,6 @@ int main(){
 
     // sort(j.begin_list(), j.end_list());
     // cout<<j;
-        std::string newFile;
-    for (int i=1; i<37;i++){
-        if(i!=32){
-            newFile = "/home/filippo/projects_c++/json/src/output/tests/test/"+std::to_string(i)+".json";
-            std::cout<<"Apro il file "<<i<<std::endl;
-            std::ifstream file(newFile);
-            if (!file.is_open()) {
-                std::cout << "Failed to open the file." << std::endl;
-                return 1;
-            }
-            std::stringstream ss;
-            ss << file.rdbuf();
-            file.close();
-
-
-            json data;
-            std::ofstream out("/home/filippo/projects_c++/json/src/output/tests/test_output/"+std::to_string(i)+".json");
-            auto start = high_resolution_clock::now();
-            try{
-                ss>>data;
-            }catch (const json_exception& exc){
-                out<<"exception :"<<exc.msg<<endl;
-            }
-            auto stop = high_resolution_clock::now();
-            auto duration = duration_cast<microseconds>(stop - start);
-            std::cout << "Read : "<< duration.count() << " microseconds" << endl;
-            
-            auto start2 = high_resolution_clock::now();
-            try{
-                out << data << std::endl;
-            }catch (const json_exception& exc){
-                out<<"exception :"<<exc.msg<<endl;
-            }
-            auto stop2 = high_resolution_clock::now();
-            auto duration2 = duration_cast<microseconds>(stop2 - start2);
-            std::cout << "Write : "<< duration2.count() << " microseconds" << endl;
-            out.close();
-        }
-
-
-    }
-    std::cout<<"Il parsing e' andato a buon fine"<<std::endl;
-
 
     
     

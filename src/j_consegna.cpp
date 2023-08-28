@@ -103,7 +103,6 @@ json::json(json const& j){
             pc=pc->next;
         }
     }else{
-
         pimpl->tipo = j.pimpl->tipo;
         pimpl->number_val = j.pimpl->number_val;
         pimpl->bool_val = j.pimpl->bool_val;
@@ -473,11 +472,17 @@ json get_lista(std::istream& is){
     char p=(is>>std::ws).peek();
     while(p!=']'){
 
-        if(p=='\n') {
-            is.ignore(1,'\n');
-            if(is) p=(is>>std::ws).peek(); 
+        // if(p=='\n') {
+        //     is.ignore(1,'\n');
+        //     if(is) p=(is>>std::ws).peek();
+        //     cout<<"in \\n if "<<endl;
+        // }
+        if(p==']') return j;
+        else if(p=='}'){
+            json_exception wrong_match;
+            wrong_match.msg = "Matched a '[' with a '}'";
+            throw wrong_match;
         }
-        if(p==']'||p=='}') return j;
 
         if(p!=','){
             j.push_back(E(is));  
@@ -505,8 +510,13 @@ string dic_str(istream& is){
 
     while(p!='"'||is_acceptable){
 
-        if(p=='\n') {is.ignore(1,'\n'); p=(is>>std::ws).peek();}
+        // if(p=='\n') {is.ignore(1,'\n'); p=(is>>std::ws).peek(); cout<<"in \\n if "<<endl;}
         if(p=='}') return s;
+        else if(p==']'){
+            json_exception wrong_match;
+            wrong_match.msg = "Matched a '{' with a ']'";
+            throw wrong_match;
+        }
 
         is>>p;
         s+=p;
@@ -555,9 +565,8 @@ json get_dictionary(istream& is){
 
         if(is) {
             p=(is>>std::ws).peek();
-            if(p=='\n') {is.ignore(1,'\n'); p=(is>>std::ws).peek();}
-        }
-        else return d;
+            // if(p=='\n') {is.ignore(1,'\n'); p=(is>>std::ws).peek();cout<<"in \\n if "<<endl;}
+        }else return d;
     
         if(p=='}') return d;
     }
@@ -583,7 +592,7 @@ json number(istream& is){
         throw invalid_json;
     }
 
-    if(n=='\n') {is.ignore(1, '\n'); n=(is>>std::ws).peek();}
+    // if(n=='\n') {is.ignore(1, '\n'); n=(is>>std::ws).peek();cout<<"in \\n if "<<endl;}
     if(n=='}'||n==']') return j;
     is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
 
@@ -615,7 +624,7 @@ json strings(istream& is){
 
     j.set_string(s);
     char n = (is>>std::ws).peek();
-    if(n=='\n') {is.ignore(1, '\n'); n=(is>>std::ws).peek();}
+    // if(n=='\n') {is.ignore(1, '\n'); n=(is>>std::ws).peek();cout<<"in \\n if "<<endl;}
     if(n=='}'||n==']') return j;
     is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
     return j;
@@ -669,7 +678,7 @@ json null(istream& is){
 
     // is.ignore(3);
     char n = (is>>std::ws).peek();
-    if(n=='\n') {is.ignore(1, '\n'); n=(is>>std::ws).peek();}
+    // if(n=='\n') {is.ignore(1, '\n'); n=(is>>std::ws).peek();cout<<"in \\n if "<<endl;}
     if(n=='}'||n==']') return j;
     is.ignore(std::numeric_limits<std::streamsize>::max(),','); 
     return j;
@@ -702,7 +711,7 @@ json boolean(istream& is){
     }
 
     char n = (is>>std::ws).peek();
-    if(n=='\n') {is.ignore(1, '\n'); n=(is>>std::ws).peek();}
+    // if(n=='\n') {is.ignore(1, '\n'); n=(is>>std::ws).peek();cout<<"in \\n if "<<endl;}
     if(n=='}'||n==']') return j;
     is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
     return j;
@@ -716,7 +725,7 @@ json E(istream& is){
     is>>std::skipws;
 
     is>>p;
-    if(p=='\n') {is>>p;}
+    if(p=='\n') {is>>p;cout<<"in \\n if "<<endl;}
 
     if((p>='0' && p<='9')||p=='-'||p=='.'){
         is.putback(p);
@@ -756,6 +765,11 @@ istream& operator>>(istream& is, json& j){
         j=move(get_lista(is));
     }else if(p=='{'){
         j=move(get_dictionary(is));
+    // }else{
+    //     json_exception invalid_json;
+    //     invalid_json.msg = "The data is in an incorrect format";
+    //     throw invalid_json;
+    // }
     }else {
         is.putback(p);
         j=move(E(is));
