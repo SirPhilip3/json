@@ -1,0 +1,6 @@
+[
+    "una stringa con \n virgolette \"escaped\"",
+    "seconda stringa senza escape",
+    "terza stringa con altri\" escape",
+    "doppio \\" escape"
+]

@@ -1,1 +1,2 @@
-["extra comma"]
+exception :Illegal comma before end of list
+null

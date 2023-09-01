@@ -1,1 +1,2 @@
-["Unclosed array"]
+exception :Invalid character after a string inserted
+null

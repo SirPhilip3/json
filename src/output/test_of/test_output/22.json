@@ -1,2 +1,2 @@
-exception :The data is in an incorrect format
+exception :Invalid character after a string inserted
 null

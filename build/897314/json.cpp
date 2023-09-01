@@ -412,7 +412,6 @@ void json::push_front(json const& j){
         throw invalid_push_front;
     }
 
-
 }
 
 
@@ -462,31 +461,143 @@ void json::insert(std::pair<std::string, json> const& d){
 
 
 //? forward declaration
-json E(std::istream& is);
+json E(std::istream& is, string& LIFO, bool from_dic_or_list); // true from dic false from list 
 
-json get_lista(std::istream& is){
+//! controlla la presenza corretta delle virgole 
+bool check_commas(std::istream& is , bool from_dic_or_list, short int from_fun){
+
+    char n = (is>>std::ws).peek();
+
+    if (n!=','&&n!=']'&&n!='}'){
+        json_exception invalid_json;
+        if(from_fun==0) invalid_json.msg = "Invalid number inserted";
+        else if(from_fun==1) invalid_json.msg = "Invalid character after a string inserted";
+        else if(from_fun==2) invalid_json.msg = "Invalid character after null";
+        else if(from_fun==3) invalid_json.msg = "Invalid character after boolean"; 
+        throw invalid_json;
+    }
+
+    if(from_dic_or_list){
+        //from dic
+        if(n=='}') return true;
+        else if(n==']'){
+            json_exception invalid_json;
+            invalid_json.msg = "MissMatch closing dictionary with ]";
+            throw invalid_json;
+        }else if(n==','){
+            is>>n;
+            n=(is>>std::ws).peek();
+            if(n==']'||n=='}'||n==','){   
+                json_exception invalid_json;
+                invalid_json.msg = "Illegal comma before end of dictionary";
+                throw invalid_json;
+            }
+            // }if(n==','){
+            //     is>>n;
+            //     n=(is>>std::ws).peek();
+            //     if (n!=','&&n!=']'&&n!='}'){
+            //         json_exception invalid_json;
+            //         invalid_json.msg = "Missing Data between commas";
+            //         throw invalid_json;
+            //     }
+            // }
+        }
+    }else{
+        //from list
+        if(n==']') return true;
+        else if(n=='}'){
+            json_exception invalid_json;
+            invalid_json.msg = "MissMatch closing list with }";
+            throw invalid_json;
+        }else if(n==','){
+            is>>n;
+            n=(is>>std::ws).peek();
+            if(n==']'||n=='}'||n==','){   
+                json_exception invalid_json;
+                invalid_json.msg = "Illegal comma before end of list";
+                throw invalid_json;
+            }
+            // }if(n==','){
+            //     is>>n;
+            //     n=(is>>std::ws).peek();
+            //     if (n!=','&&n!=']'&&n!='}'){
+            //         json_exception invalid_json;
+            //         invalid_json.msg = "Missing Data between commas";
+            //         throw invalid_json;
+            //     }
+            // }
+        }
+    }
+
+}
+
+//! controlla la corrispondenza tra parentesi chiuse e aperte 
+short int check_open_closed(const char item, string& LIFO){
+    if(LIFO.empty()){
+        if(item==']'||item=='}'){
+            // json_exception invalid;
+            // invalid.msg="Uneccessary \'" + item + '\'';
+            // throw invalid;
+            // cout<<"UNECCESSARY"<<endl;
+        }else LIFO+=item;
+    }else{
+        if(LIFO.back()==item-2){
+            LIFO.erase(LIFO.size()-1);
+        }else if(item-LIFO.back()==34||item-LIFO.back()==-34){
+            // json_exception invalid;
+            // invalid.msg = "MissMatch";
+            // throw invalid;
+            // cout<<"MISSMATCH"<<endl;
+        }else LIFO+=item;
+        // cout<<LIFO<<endl;
+        if(LIFO.empty()) return 0;// empty = 0
+        else return 1; // not empty = 1
+    }
+}
+
+json get_lista(std::istream& is, string& LIFO){
     json j;
     j.set_list();
     is>>std::skipws;
 
     char p=(is>>std::ws).peek();
-    while(p!=']'){
 
-        if(p=='\n') {
-            is.ignore(1,'\n');
-            if(is) p=(is>>std::ws).peek(); 
-        }
-        if(p==']'||p=='}') return j;
-
-        if(p!=','){
-            j.push_back(E(is));  
-        }else is>>p;
-
-        if(is) p=(is>>std::ws).peek(); 
-        else return j;
+    if(p=='}'){
+        json_exception wrong_match;
+        wrong_match.msg = "MissMatched a '[' with a '}'";
+        throw wrong_match;
     }
 
-    return j;
+    while(p!=']'){
+
+        // if(p=='['||p=='{'||p=='}'||p==']') check_open_closed(p,LIFO);
+
+        if(p!=','){
+            j.push_back(E(is,LIFO,false));  
+        }else is>>p;
+
+        if(is) p=(is>>std::ws).peek();
+        else {
+            json_exception open_list;
+            open_list.msg="The list is incorrectly formatted, no ']' detected";
+            throw open_list;
+            // return j;
+        }
+        // if(p=='['||p=='{'||p=='}'||p==']') check_open_closed(p,LIFO);
+        if(p==']'){
+            // is>>p;
+            // //! devo farlo solo alla fine del primo ciclo
+            // if(is>>p) {
+            //     json_exception invalid;
+            //     invalid.msg = "extra data";
+            //     throw invalid;
+            // }else return j;
+
+            return j;
+        }
+    }
+
+    // return j;
 }
 
 
@@ -495,18 +606,23 @@ string dic_str(istream& is){
     char p=0;
     bool is_acceptable=false;
     is>>p;
-    if(p=='{') {
-        is>>p;}
-    if(p=='"') {
-        p=0;}
+
+    if(p=='"'){
+        p=0;
+    }else{
+        json_exception not_a_string;
+        not_a_string.msg = "There needs to be a key, missing '\"'";
+        throw not_a_string;
+    }
 
     is>>std::noskipws;
 
     while(p!='"'||is_acceptable){
-
-        if(p=='\n') {is.ignore(1,'\n'); p=(is>>std::ws).peek();}
-        if(p=='}') return s;
-
+        if(is.peek()==EOF){
+            json_exception invalid;
+            invalid.msg ="no closing \" dic";
+            throw invalid;
+        }
         is>>p;
         s+=p;
         if(p=='\\'){
@@ -520,8 +636,15 @@ string dic_str(istream& is){
     s.erase(s.length()-1);
     is>>std::skipws;
 
-    p=(is>>std::ws).peek();
-    if(p!=':') {
+    if(is) p=(is>>std::ws).peek();
+    else{
+        json_exception open_dictionary;
+        open_dictionary.msg="The dictionary is incorrectly formatted, no value detected after \"" + s +'\"';
+        throw open_dictionary;
+        // return j
+    }
+
+    if(p!=':') {//!
         json_exception invalid_json;
         invalid_json.msg = "There is no ':' after key value \"" + s +'\"' ;
         throw invalid_json;
@@ -531,7 +654,7 @@ string dic_str(istream& is){
     return s;
 }
 
-json get_dictionary(istream& is){
+json get_dictionary(istream& is,string& LIFO){
 
     json d; 
     d.set_dictionary();
@@ -541,31 +664,45 @@ json get_dictionary(istream& is){
     char p=(is>>std::ws).peek();
 
     while(p!='}'){
-
+        // if(p=='['||p=='{'||p=='}'||p==']') check_open_closed(p,LIFO);
         if(p!=','){
             El_dict.first = dic_str(is);
-            El_dict.second = move(E(is)); 
+            El_dict.second = move(E(is,LIFO,true)); 
 
             d.insert(El_dict);
 
             El_dict.second.~json(); 
 
         }else is>>p;
-
+        // p=(is>>std::ws).peek();
         if(is) {
             p=(is>>std::ws).peek();
-            if(p=='\n') {is.ignore(1,'\n'); p=(is>>std::ws).peek();}
+        }else{
+            json_exception open_dictionary;
+            open_dictionary.msg="The dictionary is incorrectly formatted, no '}' detected";
+            throw open_dictionary;
+            // return d;
         }
-        else return d;
-    
-        if(p=='}') return d;
+        // if(p=='['||p=='{'||p=='}'||p==']') check_open_closed(p,LIFO);
+        if(p=='}'){
+            // is>>p;
+            // if(is>>p) {
+            //     json_exception invalid;
+            //     invalid.msg = "extra data";
+            //     throw invalid;
+            // }else return d;
+            return d;
+        }
+
     }
 
-    return d;
+
+
+    // return d;
 }
 
 
-json number(istream& is){
+json number(istream& is, bool from_dic_or_list){
 
     json j;
     double num = 0;
@@ -574,22 +711,77 @@ json number(istream& is){
     is>>num;
     j.set_number(num);
 
-    char n = (is>>std::ws).peek();
+    if(check_commas(is,from_dic_or_list,0)) return j;
+
+    // char n=(is>>std::ws).peek();
+    // controlla se dopo aver letto il numero ci sono caratteri non consentiti
+    // while (is.peek() != ',' && is.peek() != ']' && is.peek() != '}') {
+    //     if (!std::isspace(is.peek())) {
+    //         json_exception unexpected_value;
+    //         unexpected_value.msg="unexpected value found";
+    //         throw unexpected_value;
+    //     }
+    //     is.ignore(std::numeric_limits<std::streamsize>::max(), is.peek());
+    // }
+
+    // if (n!=','&&n!=']'&&n!='}'){
+    //     json_exception invalid_json;
+    //     invalid_json.msg = "Invalid number inserted";
+    //     throw invalid_json;
+    // }
     
-    if (n!=','&&n!=']'&&n!='}'){
-        json_exception invalid_json;
-        invalid_json.msg = "Invalid number inserted";
-        throw invalid_json;
-    }
+    //si ferma fino a o , ] } se si ferma con ] o } (a seconda se da dic o list) posso ritornare se si ferma con ,
+    // controllo se dopo c'è ] o }  se c'è exception altrimenti vado avanti
 
-    if(n=='\n') {is.ignore(1, '\n'); n=(is>>std::ws).peek();}
-    if(n=='}'||n==']') return j;
-    is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
+    // if(from_dic_or_list){
+    //     //from dic
+    //     if(n=='}') return j;
+    //     else if(n==']'){
+    //         json_exception invalid_json;
+    //         invalid_json.msg = "MissMatch closing dictionary with ]";
+    //         throw invalid_json;
+    //     }else if(n==','){
+    //         is>>n;
+    //         n=(is>>std::ws).peek();
+    //         if(n==']'||n=='}'){   
+    //             json_exception invalid_json;
+    //             invalid_json.msg = "Illegal comma before end of dictionary";
+    //             throw invalid_json;
+    //         }
+    //     }
+    // }else{
+    //     //from list
+    //     if(n==']') return j;
+    //     else if(n=='}'){
+    //         json_exception invalid_json;
+    //         invalid_json.msg = "MissMatch closing list with }";
+    //         throw invalid_json;
+    //     }else if(n==','){
+    //         is>>n;
+    //         n=(is>>std::ws).peek();
+    //         if(n==']'||n=='}'){   
+    //             json_exception invalid_json;
+    //             invalid_json.msg = "Illegal comma before end of list";
+    //             throw invalid_json;
+    //         }
+    //     }
+    // }
 
-    return j;
+    // if(n==']'||n=='}') return j;
+
+    // is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
+
+    // n=(is>>std::ws).peek();
+    // if(n==']'||n=='}'){   
+    //     json_exception invalid_json;
+    //     invalid_json.msg = "Illegal comma before end of json";
+    //     throw invalid_json;
+    // }
+
+    // return j;
 }
 
-json strings(istream& is){
+json strings(istream& is,bool from_dic_or_list){
     std::string s;
     json j;
     char p=0;
@@ -598,6 +790,11 @@ json strings(istream& is){
     is>>std::noskipws;
 
     while(p!='"'||is_acceptable){
+        if(is.peek()==EOF){
+            json_exception invalid;
+            invalid.msg ="no closing \" ";
+            throw invalid;
+        }
         is>>p;
         s+=p;
         if(p=='\\'){
@@ -613,11 +810,59 @@ json strings(istream& is){
     is>>std::skipws;
 
     j.set_string(s);
-    char n = (is>>std::ws).peek();
-    if(n=='\n') {is.ignore(1, '\n'); n=(is>>std::ws).peek();}
-    if(n=='}'||n==']') return j;
-    is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
-    return j;
+
+    if(check_commas(is,from_dic_or_list,1)) return j;
+
+    // char n = (is>>std::ws).peek();
+
+    // if (n!=','&&n!=']'&&n!='}'){
+    //     json_exception invalid_json;
+    //     invalid_json.msg = "Invalid character after the string inserted";
+    //     throw invalid_json;
+    // }
+
+    // if(from_dic_or_list){
+    //     //from dic
+    //     if(n=='}') return j;
+    //     else if(n==']'){
+    //         json_exception invalid_json;
+    //         invalid_json.msg = "MissMatch closing dictionary with ]";
+    //         throw invalid_json;
+    //     }else if(n==','){
+    //         is>>n;
+    //         n=(is>>std::ws).peek();
+    //         if(n==']'||n=='}'){   
+    //             json_exception invalid_json;
+    //             invalid_json.msg = "Illegal comma before end of dictionary";
+    //             throw invalid_json;
+    //         }
+    //     }
+    // }else{
+    //     //from list
+    //     if(n==']') return j;
+    //     else if(n=='}'){
+    //         json_exception invalid_json;
+    //         invalid_json.msg = "MissMatch closing list with }";
+    //         throw invalid_json;
+    //     }else if(n==','){
+    //         is>>n;
+    //         n=(is>>std::ws).peek();
+    //         if(n==']'||n=='}'){   
+    //             json_exception invalid_json;
+    //             invalid_json.msg = "Illegal comma before end of list";
+    //             throw invalid_json;
+    //         }
+    //     }
+    // }
+    // is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
+
+    // n=(is>>std::ws).peek();
+    // if(n==']'||n=='}'){   
+    //     json_exception invalid_json;
+    //     invalid_json.msg = "Illegal comma before end of json";
+    //     throw invalid_json;
+    // }
+    // return j;
 }
 
 // function to ceck if written correctly true, false or null 
@@ -653,7 +898,7 @@ bool ceck_bool_correctness(short int b_Type, istream& is){
     return valid;
 }
 
-json null(istream& is){
+json null(istream& is, bool from_dic_or_list){
 
     json j;
     is>>std::skipws;
@@ -664,17 +909,17 @@ json null(istream& is){
         invalid_json.msg = "The data is in an incorrect format, from null branch";
         throw invalid_json;
     }
-    // j.set_null();
 
-    // is.ignore(3);
-    char n = (is>>std::ws).peek();
-    if(n=='\n') {is.ignore(1, '\n'); n=(is>>std::ws).peek();}
-    if(n=='}'||n==']') return j;
-    is.ignore(std::numeric_limits<std::streamsize>::max(),','); 
-    return j;
+    if(check_commas(is,from_dic_or_list,2)) return j;
+
+    // char n = (is>>std::ws).peek();
+
+    // if(n=='}'||n==']') return j;
+    // is.ignore(std::numeric_limits<std::streamsize>::max(),','); 
+    // return j;
 }
 
-json boolean(istream& is){
+json boolean(istream& is, bool from_dic_or_list){
     char p=0;
     json j;
     is>>std::skipws;
@@ -687,8 +932,6 @@ json boolean(istream& is){
             invalid_json.msg = "The data is in an incorrect format, from true branch";
             throw invalid_json;
         }
-        // j.set_bool(true);
-        // is.ignore(3); //! dovrei controllare se ho scritto realmente true prima di settare
     }else if(p=='f'){
         if(ceck_bool_correctness(2,is)) j.set_bool(false);
         else {
@@ -696,50 +939,52 @@ json boolean(istream& is){
             invalid_json.msg = "The data is in an incorrect format, from false branch";
             throw invalid_json;
         }
-        // j.set_bool(false);
-        // is.ignore(4);
+
     }
 
-    char n = (is>>std::ws).peek();
-    if(n=='\n') {is.ignore(1, '\n'); n=(is>>std::ws).peek();}
-    if(n=='}'||n==']') return j;
-    is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
-    return j;
+    if(check_commas(is,from_dic_or_list,3)) return j;
+
+    // char n = (is>>std::ws).peek();
+
+    // if(n=='}'||n==']') return j;
+    // is.ignore(std::numeric_limits<std::streamsize>::max(), ',');
+    // return j;
 }
 
 
-json E(istream& is){
+json E(istream& is, string& LIFO, bool from_dic_or_list){
 
     char p=0;
     json j;
     is>>std::skipws;
 
     is>>p;
-    if(p=='\n') {is>>p;}
 
     if((p>='0' && p<='9')||p=='-'||p=='.'){
         is.putback(p);
-        j=move(number(is));
+        j=move(number(is,from_dic_or_list));
     }else if(p=='['){
-        j=move(get_lista(is));
+        // if(p=='['||p=='{'||p=='}'||p==']') check_open_closed(p,LIFO);
+        j=move(get_lista(is,LIFO));
         is>>p;
     }else if(p=='{'){
-        j=move(get_dictionary(is));
+        // if(p=='['||p=='{'||p=='}'||p==']') check_open_closed(p,LIFO);
+        j=move(get_dictionary(is,LIFO));
         is>>p;
     }else if(p!='"'){
         if (p=='n'){
-            j=move(null(is));
+            j=move(null(is,from_dic_or_list));
         } 
         else if(p=='t'||p=='f'){
             is.putback(p);
-            j=move(boolean(is));
+            j=move(boolean(is,from_dic_or_list));
         }else {
             json_exception invalid_json;
-            invalid_json.msg = "The data is in an incorrect format";
+            invalid_json.msg = "The data is in an incorrect format, E function with char detected :" + p;// chiamata quando mi aspetto qualcosaltro oltre es ["c",[33]
             throw invalid_json;
         }
     }else{
-        j=move(strings(is));
+        j=move(strings(is,from_dic_or_list));
     }
 
     return j;
@@ -749,21 +994,44 @@ json E(istream& is){
 istream& operator>>(istream& is, json& j){
     char p = 0;
     is>>std::skipws;
-
+    string ceck;
     is >> p;
     if(p=='['){
-        j=move(get_lista(is));
+        // check_open_closed(p,ceck);
+        j=move(get_lista(is,ceck));
+        is>>p;
+        if(is>>p) {
+            //!
+            j.~json();
+            j.set_null();
+            json_exception invalid;
+            invalid.msg = "extra data";
+            throw invalid;
+        }
     }else if(p=='{'){
-        j=move(get_dictionary(is));
+        // check_open_closed(p,ceck);
+        j=move(get_dictionary(is,ceck));
+        is>>p;
+        if(is>>p) {
+            //!
+            j.~json();
+            j.set_null();
+            json_exception invalid;
+            invalid.msg = "extra data";
+            throw invalid;
+        }
     }else{
         json_exception invalid_json;
         invalid_json.msg = "The data is in an incorrect format";
         throw invalid_json;
     }
+
     // }else {
     //     is.putback(p);
     //     j=move(E(is));
     // }
+
+    // if(!ceck.empty()) exeption
 
     return is;
 }
