@@ -1,4 +1,6 @@
+// #include "test2.cpp"
 #include "j_consegna.cpp"
+// #include "json_prec.cpp"
 // #include "json.hpp"
 //! AGGIUNGERE CONTROLLI PER GRAMMATICA ERRATA
 #include <chrono>
@@ -8,8 +10,10 @@ using namespace std::chrono;
 #include <utility>
 #include <cassert>
 
+using namespace std;
+
 int main(){
-    // /*
+
     try
     {
         json j;
@@ -18,14 +22,96 @@ int main(){
     }
     catch(const json_exception& e)
     {
-        std::cout << e.msg<< '\n';
+        std::cerr << e.msg << '\n';
     }
-    // */
+    
+
+    /*
+    try
+    {    
+        json j;
+        ifstream file("/home/filippo/projects_c++/json/src/output/custom_test/rewrite/55.json");
+        stringstream ss;
+        ss<<file.rdbuf();
+        ss>>j;
+        json k;
+        cout<<"--k: "<<k<<endl;
+        cout<<"--j: "<<j<<endl;
+        // cout<<sizeof(j)<<endl;
+        // k=j;
+        // cout<<"k: "<<k<<endl;
+        // cout<<"j: "<<j<<endl;
+        // k=j;
+        // cout<<"--k: "<<k<<endl;
+        // cout<<"--j: "<<j<<endl; 
+        k=move(j);
+        // cout<<"--k: "<<k<<endl;
+        cout<<"--k: "<<k<<endl;
+    }
+    catch(const json_exception& e)
+    {
+        cout << e.msg << '\n';
+    }
+    */
+ /*
+
+    json j;
+
+    try{
+        ifstream file("/home/filippo/projects_c++/json/src/output/custom_test/rewrite/55.json");
+        stringstream ss;
+        ss<<file.rdbuf();
+        cout<<"reading"<<endl;
+        ss>>j;
+        json k;
+        k=move(j);
+        cout<<"writing"<<endl;
+        ofstream out("/home/filippo/projects_c++/json/src/output/custom_test/rewrite/out.json");
+        out<<k;
+        // cout<<j<<endl;
+        out.close();
+        file.close();
+        // cin>>j;
+    }
+    catch(const json_exception& e)
+    {
+        std::cout << e.msg<< endl;
+    }
+
+    try//!!!!
+    {
+        ifstream file("/home/filippo/projects_c++/json/src/output/custom_test/rewrite/out.json");
+        stringstream ss;
+        ss<<file.rdbuf();
+        cout<<"reading"<<endl;
+        ss>>j;
+        json k;
+        k=move(j);
+        cout<<"writing"<<endl;
+        ofstream out("/home/filippo/projects_c++/json/src/output/custom_test/rewrite/55.json");
+        out<<k;
+        // cout<<j;
+        out.close();
+        file.close();
+        // json k;
+        // k=move(j);
+        // cout<<k;
+    }
+    catch(const json_exception& e)
+    {
+        std::cout << e.msg << '\n';
+    }
+
+    */
+
+
+
     /*
     try{
     std::string newFile;
     for (int i=1; i<37;i++){
         // if(i==){
+        // newFile = "/home/filippo/projects_c++/json/src/output/custom_test/json_test/"+std::to_string(i)+".txt";
         newFile = "/home/filippo/projects_c++/json/src/output/test_of/test/"+std::to_string(i)+".json";
         // newFile = "/home/filippo/projects_c++/json/src/output/test_ceck_comma/"+std::to_string(i)+".json";
         std::cout<<"Apro il file "<<i<<std::endl;
@@ -66,161 +152,32 @@ int main(){
         cout<<e.msg<<endl;
     }
     */
-    
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // json original;
-    // try {
-    //     //{"K":54654,"j":435,"p":[45,456,12313,567,"cioa",true,false,null],"l":"v"}
-    //     cin>>original; 
-    // }catch (const json_exception& exc){
-    //     std::cout<<"exception :"<<exc.msg<<endl;
-    // }
-    // try
-    // {
-    //     json& y = *(++original.begin_list());
-    //     std::cout << y["quarta chiave"]["a"];
-    //     // json z;
-    //     // z.set_dictionary();
-    //     // std::pair<string, json> tmp;
-    //     // tmp.first = "c";
-    //     // tmp.second.set_number(5);
-    //     // z.insert(tmp);
-    //     // tmp.first ="d";
-    //     // tmp.second.set_number(6);
-    // }
-    // catch(const json_exception& e)
-    // {
-    //     std::cout << e.msg << '\n';
-    // }
-    // try
-    // {
-    //     json j;
-    //     // j.set_list();
-    //     cin>>j;
-    //     // json tmp;2
-    //     // tmp.set_number(324);
-    //     // // j.push_back(tmp);
-    //     // // cout<<j<<endl;
-    //     // // j.set_bool(true);
-    //     // // // cin>>j;
-    //     // j.set_list();
-    //     // j.push_back(tmp);
-    //     // tmp.5set_number(24);
-    //     // j.push_back(tmp);
-    //     // const json k = j;
-    //     // cout<<j<<endl;
-    //     cout<<j;
-
-    //     // json& y = *(++j.begin_list());
-    //     // std::cout << y["quarta chiave"]["a"];
-    //     // json z;
-    //     // z.set_dictionary();
-    //     // pair<string, json> tmp;
-    //     // tmp.first = "c";
-    //     // tmp.second.set_bool(true);
-    //     // z.insert(tmp);
-    //     // tmp.first = "d";
-    //     // tmp.second.set_bool(false);
-    //     // z.insert(tmp);
-    //     // cout<<z<<"z\n";
-    //     // (*(++j.begin_list()))["prima chiave"] = z;
-    //     // json moved = move(z);
-    //     // cout<<moved<<"moved";
-    //     // z.set_list();
-    //     // json tmo;
-    //     // tmo.set_number(4);
-    //     // z.push_back(tmo);
-    //     // tmo.set_bool(true);
-    //     // z.push_front(tmo);5
-    //     // tmo.set_string("nfe");
-    //     // z.push_back(tmo);
-    //     // cout<<"list z"<<z<<endl;
-    // }
-    // catch(const json_exception& e)
-    // {
-    //     std::cout << e.msg << '\n';
-    // }
-    
-    // json j;
-    // std::cin >> j;
-    // json& y = *(++j.begin_list());
-    // std::cout << y["quarta chiave"]["a"];
-    // json z;
-    // z.set_dictionary();
-    // pair<string, json> tmp;
-    // tmp.first = "c";
-    // tmp.second.set_number(5);
-    // z.insert(tmp);
-    // tmp.first = "d";
-    // tmp.second.set_number(6);
-    // z.insert(tmp);
-    // (*(++j.begin_list()))["prima chiave"] = z;
-
-    
-    
-    // json moved; //! non crea uninitialized value
-    // try
-    // {
-    //     json moved = move(original);
-    // }
-    // catch(const json_exception& e)
-    // {
-    //     std::cout<<"exception :"<<e.msg<<endl;
-    // }
-      //! crea uninitialized values
-
-    // sort(j.begin_list(), j.end_list());
-    // cout<<j;
-
-    
-    
-    // json j;
-    // auto start = high_resolution_clock::now();
-    // try{
-    //     cin>>j;
-    // }catch (const json_exception& exc){
-    //     std::cout<<"exception :"<<exc.msg<<endl;
-    // }
-    // auto stop = high_resolution_clock::now();
-	
-	// auto duration = duration_cast<microseconds>(stop - start);
-
-	// std::cout << "Read : "<< duration.count() << " microseconds" << endl;
-    
-    // auto start2 = high_resolution_clock::now();
-
-    // std::ofstream out("output.json");
-    // try{
-    //     out<<j;
-    // }catch (const json_exception& exc){
-    //     cout<<"exception :"<<exc.msg<<endl;
-    // }
-    // auto stop2 = high_resolution_clock::now();
-	
-	// auto duration2 = duration_cast<microseconds>(stop2 - start2);
-
-	// std::cout << "Write : "<< duration2.count() << " microseconds" << endl;
-    
+    /*
+    try{
+        json j;
+        std::cin >> j;
+        cout<<j<<endl;
+        json& y = *(++j.begin_list());
+        std::cout << y["quarta chiave"]["a"];
+        json z;
+        z.set_dictionary();
+        pair<string, json> tmp;
+        tmp.first = "c";
+        tmp.second.set_number(5);
+        z.insert(tmp);
+        tmp.first = "d";
+        tmp.second.set_number(6);
+        z.insert(tmp);
+        // cout<<z<<"z\n";
+        (*(++j.begin_list()))["prima chiave"] = z;
+        cout<<endl;
+        cout<<j<<endl;
+        
+    }catch(const json_exception& e){
+        std::cout << e.msg << '\n';
+    }
+    */
 
     return 0;
 }

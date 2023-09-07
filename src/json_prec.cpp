@@ -316,7 +316,8 @@ json& json::operator[](std::string const& s){
 
 void json::set_list(){
 
-    this->~json();
+    // this->~json();
+    delete this->pimpl;
 
     pimpl = new impl;
     pimpl->tipo = impl::Tipo::List;
@@ -329,7 +330,8 @@ void json::set_list(){
 
 void json::set_dictionary(){
 
-    this->~json();
+    // this->~json();
+    delete this->pimpl;
 
     pimpl = new impl;
     pimpl->tipo = impl::Tipo::Dictionary;
@@ -342,7 +344,8 @@ void json::set_dictionary(){
 
 void json::set_string(string const& x){
 
-    this->~json();
+    // this->~json();
+    delete this->pimpl;
 
     pimpl = new impl;
     pimpl->tipo = impl::Tipo::String;
@@ -356,7 +359,8 @@ void json::set_string(string const& x){
 
 void json::set_bool(bool x){
     
-    this->~json();
+    // this->~json();
+    delete this->pimpl;
 
     pimpl = new impl;
     pimpl->tipo = impl::Tipo::Bool;
@@ -370,7 +374,8 @@ void json::set_bool(bool x){
 
 void json::set_number(double x){
     
-    this->~json();
+    // this->~json();
+    delete this->pimpl;
 
     pimpl = new impl;
     pimpl->tipo = impl::Tipo::Number;
@@ -384,7 +389,8 @@ void json::set_number(double x){
 
 void json::set_null(){
  
-    this->~json();
+    // this->~json();
+    delete this->pimpl;
 
     pimpl = new impl;
     pimpl->tipo = impl::Tipo::Null;
@@ -420,7 +426,7 @@ void json::push_front(json const& j){
 void json::push_back(json const& j){ 
 
     if(is_list()){
-        impl::PNodeL tmp = new impl::NodeL;
+        impl::PNodeL tmp = new impl::NodeL;//!
         tmp->val = j;
         tmp->next = nullptr;
 
@@ -542,6 +548,7 @@ json get_dictionary(istream& is){
             d.insert(El_dict);
 
             El_dict.second.~json(); 
+            // delete ;
 
         }else is>>p;
 

@@ -1,2 +1,2 @@
-exception :in an incorrect format
-null
+exception :The data in a list is in an incorrect format, the invalid character detected was : '\'
+[]

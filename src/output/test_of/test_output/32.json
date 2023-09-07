@@ -1,2 +1,2 @@
 exception :The dictionary is incorrectly formatted, no '}' detected
-null
+{}

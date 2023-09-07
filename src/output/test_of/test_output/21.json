@@ -1,2 +1,2 @@
 exception :There is no ':' after key value "Comma instead of colon"
-null
+{}
