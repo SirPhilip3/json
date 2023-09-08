@@ -13,19 +13,26 @@ using namespace std::chrono;
 using namespace std;
 
 int main(){
-
+// /*
     try
     {
         json j;
+        // j.set_list();
+        // json k;
+        // k.set_number(324);
+        // j.push_back(k);
+        // j.push_back(k);
         cin>>j;
-        cout<<j;
+        // json n = j;
+        // cout<<"j: "<<j<<endl;
+        // cout<<"n: "<<n<<endl;
     }
     catch(const json_exception& e)
     {
         std::cerr << e.msg << '\n';
     }
     
-
+// */
     /*
     try
     {    
@@ -102,18 +109,18 @@ int main(){
         std::cout << e.msg << '\n';
     }
 
-    */
+    // */
 
 
 
     /*
     try{
     std::string newFile;
-    for (int i=1; i<37;i++){
+    for (int i=1; i<101;i++){
         // if(i==){
-        // newFile = "/home/filippo/projects_c++/json/src/output/custom_test/json_test/"+std::to_string(i)+".txt";
-        newFile = "/home/filippo/projects_c++/json/src/output/test_of/test/"+std::to_string(i)+".json";
-        // newFile = "/home/filippo/projects_c++/json/src/output/test_ceck_comma/"+std::to_string(i)+".json";
+        newFile = "/home/filippo/projects_c++/json/src/output/custom_test/json_test/"+std::to_string(i)+".txt";
+        // newFile = "/home/filippo/projects_c++/json/src/output/test_of/test/"+std::to_string(i)+".json";
+        // newFile = "/home/filippo/projects_c++/json/src/output/test_open/"+std::to_string(i)+".json";
         std::cout<<"Apro il file "<<i<<std::endl;
         std::ifstream file(newFile);
         if (!file.is_open()) {
@@ -125,7 +132,7 @@ int main(){
         file.close();
 
         json data;
-        std::ofstream out("/home/filippo/projects_c++/json/src/output/test_of/test_output/"+std::to_string(i)+".json");
+        std::ofstream out("/home/filippo/projects_c++/json/src/output/custom_test/test_output/"+std::to_string(i)+".json");
         auto start = high_resolution_clock::now();
         try{
             ss>>data;
@@ -151,7 +158,7 @@ int main(){
     }catch(const json_exception& e){
         cout<<e.msg<<endl;
     }
-    */
+    // */
 
     /*
     try{
@@ -177,7 +184,7 @@ int main(){
     }catch(const json_exception& e){
         std::cout << e.msg << '\n';
     }
-    */
+    // */
 
     return 0;
 }

@@ -1,2 +1,2 @@
-exception :Invalid number inserted
+exception :invalid dictionary
 {}

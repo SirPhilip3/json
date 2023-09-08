@@ -1,2 +1,2 @@
-exception :Illegal comma before end of list
+exception :The data in a list is in an incorrect format, the invalid character detected was : ','
 []

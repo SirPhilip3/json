@@ -17,7 +17,7 @@
         "one": 1,
         "space": " ",
         "quote": "\"",
-        "backslash": "\\w",
+        "backslash": "backslash",
         "controls": "\b\f\n\r\t",
         "slash": "/ & \/",
         "alpha": "abcdefghijklmnopqrstuvwyz",

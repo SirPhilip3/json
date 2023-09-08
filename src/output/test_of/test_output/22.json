@@ -1,2 +1,2 @@
-exception :Invalid character after a string inserted
+exception :invalid list
 []

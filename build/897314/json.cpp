@@ -465,26 +465,42 @@ json get_lista(std::istream& is){
     j.set_list();
     is>>std::skipws;
 
-    char p=(is>>std::ws).peek();
+    // char p=(is>>std::ws).peek();
+    char p;
+    is>>p;
 
     if(p=='}'){
         throw json_exception {"MissMatched a '[' with a '}'"};
     }else if (p==','){
         throw json_exception {"missing value"};
-    }
+    }else if (p!=']') is.putback(p);
 
     while(p!=']'){
 
-        if(p!=','){
-            j.push_back(E(is,0));  
-        }else is>>p;
+        // if(p!=','){
+            j.push_back(E(is,0));//! e ritorna el dopo virgola
+        // }else is>>p;
 
-        if(is) p=(is>>std::ws).peek();
+        // p=(is>>std::ws).peek();
+
+        /*
+        [{}]
+        is>>p ritorna } qua quindi faila perchè dovrebbe esserci una chiusa al massimo dopo
+        
+        
+        */
+
+
+        if(is){
+            is>>p;
+            // p=(is>>std::ws).peek();
+            if(p!=','&&p!=']') throw json_exception {"invalid list"};
+        }
         else {
             throw json_exception {"The list is incorrectly formatted, no ']' detected"};
         }
     }
-
+    // p=(is>>std::ws).peek();
     return j;
 }
 
@@ -539,16 +555,18 @@ json get_dictionary(istream& is){
     std::pair<string , json> El_dict;
     is>>std::skipws;
 
-    char p=(is>>std::ws).peek();
+    // char p=(is>>std::ws).peek();
+    char p;
+    is>>p;
 
     if(p==']'){
         throw json_exception {"MissMatched a '{' with a ']'"};
     }else if (p==','){
         throw json_exception {"missing value"};
-    }
+    }else if (p!='}') is.putback(p);
 
     while(p!='}'){
-        if(p!=','){
+        // if(p!=','){
             El_dict.first = dic_str(is);
             El_dict.second = move(E(is,1)); 
 
@@ -556,15 +574,21 @@ json get_dictionary(istream& is){
 
             El_dict.second.~json(); 
 
-        }else is>>p;
+        // }else is>>p;
 
         if(is) {
-            p=(is>>std::ws).peek();
+            is>>p;
+            // p=(is>>std::ws).peek();
+            if(p!=','&&p!='}') throw json_exception {"invalid dictionary"};
         }else{
             throw json_exception {"The dictionary is incorrectly formatted, no '}' detected"};
         }
-        if(p=='}') return d;
+        // if(p=='}') return d;
     }
+    // p=(is>>std::ws).peek();
+
+    // p sempre }
+    return d;
 }
 
 
@@ -577,7 +601,8 @@ json number(istream& is, short int from_dic_or_list){
     is>>num;
     j.set_number(num);
 
-    if(check_commas(is,from_dic_or_list,0)) return j;
+    return j;
+    // if(check_commas(is,from_dic_or_list,0)) return j;
 
 }
 
@@ -608,8 +633,9 @@ json strings(istream& is,short int from_dic_or_list){
     is>>std::skipws;
 
     j.set_string(s);
-
-    if(check_commas(is,from_dic_or_list,1)) return j;
+    // p=is.peek();
+    return j;
+    // if(check_commas(is,from_dic_or_list,1)) return j;
 }
 
 // function to ceck if written correctly true, false or null 
@@ -654,7 +680,9 @@ json null(istream& is, short int from_dic_or_list){
         throw json_exception {"The data is in an incorrect format, from null branch"};
     }
 
-    if(check_commas(is,from_dic_or_list,2)) return j;
+    return j;
+
+    // if(check_commas(is,from_dic_or_list,2)) return j;
 
 }
 
@@ -676,7 +704,9 @@ json boolean(istream& is, short int from_dic_or_list){
         }
     }
 
-    if(check_commas(is,from_dic_or_list,3)) return j;
+    return j;
+
+    // if(check_commas(is,from_dic_or_list,3)) return j;
 
 }
 
@@ -694,10 +724,10 @@ json E(istream& is, short int from_dic_or_list){
         j=move(number(is,from_dic_or_list));
     }else if(p=='['){
         j=move(get_lista(is));
-        is>>p;
+        // is>>p;
     }else if(p=='{'){
         j=move(get_dictionary(is));
-        is>>p;
+        // is>>p;
     }else if(p!='"'){
         if (p=='n'){
             j=move(null(is,from_dic_or_list));
@@ -723,28 +753,38 @@ istream& operator>>(istream& is, json& j){
     char p = 0;
     is>>std::skipws;
     is >> p;
-    if(p=='['){
-        j.set_list();
-        j=move(get_lista(is));
-        is>>p;
-        if(is>>p) {
-            j.set_null();
-            throw json_exception {"extra data"};
-        }
-    }else if(p=='{'){
-        j.set_dictionary();
-        j=move(get_dictionary(is));
-        is>>p;
-        if(is>>p) {
-            j.set_null();
-            throw json_exception {"extra data"};
-        }
-    }else{
+
+    j.set_null();
+    is.putback(p);
+    j=move(E(is,3));
+    is>>p;
+    if(is>>p) {
         j.set_null();
-        is.putback(p);
-        j=move(E(is,3));
-        // throw json_exception {"The data is in an incorrect format"};
+        throw json_exception {"extra data"};
     }
+
+    // if(p=='['){
+    //     j.set_list();
+    //     j=move(get_lista(is));
+    //     is>>p;
+    //     if(is>>p) {
+    //         j.set_null();
+    //         throw json_exception {"extra data"};
+    //     }
+    // }else if(p=='{'){
+    //     j.set_dictionary();
+    //     j=move(get_dictionary(is));
+    //     is>>p;
+    //     if(is>>p) {
+    //         j.set_null();
+    //         throw json_exception {"extra data"};
+    //     }
+    // }else{
+    //     j.set_null();
+    //     is.putback(p);
+    //     j=move(E(is,3));
+    //     // throw json_exception {"The data is in an incorrect format"};
+    // }
 
     return is;
 }

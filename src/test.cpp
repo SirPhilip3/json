@@ -32,9 +32,15 @@ string kl (string j){
 
 
 int main(){
-    string k;
-    cin>>k;
-    string m = kl(k);
-    cout<<m;
+    // string k;
+    // cin>>k;
+    // string m = kl(k);
+    // cout<<m;
+
+    double num;
+    cin>>num;
+    cout<<num;
+
+    return 0;
 
 }
