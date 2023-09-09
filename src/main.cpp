@@ -9,11 +9,54 @@
 using namespace std::chrono;
 #include <utility>
 #include <cassert>
+#include <iomanip>
 
 using namespace std;
 
 int main(){
-// /*
+
+try
+{
+    json data;
+    int count = 50;
+    double total=0;
+    for (int i = 0; i < count; i++)
+    {
+        ifstream file("/home/filippo/projects_c++/json/src/output/other_tests/large-file.json");
+        stringstream ss;
+        ss<<file.rdbuf();
+        std::ofstream out("/home/filippo/projects_c++/json/src/output/other_tests/large-file_output.json");
+        auto start = high_resolution_clock::now();
+        try{
+            ss>>data;
+        }catch (const json_exception& exc){
+            out<<"exception :"<<exc.msg<<endl;
+        }
+        file.seekg(0, std::ios::end);
+        std::streampos fileSize = file.tellg();
+        file.close();
+        auto stop = high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<microseconds>(stop - start);
+        double transferRate = static_cast<double>(fileSize) / (duration.count() * 1e6); 
+        total+=transferRate;
+        std::cout << std::fixed << std::setprecision(10);
+        std::cout << i+1 <<": Data transfer rate: " << transferRate << " MB/s" << std::endl;
+    }
+
+    double median = total/count;
+    std::cout << "Data transfer rate median: " << median << " MB/s" << std::endl;
+
+
+
+}
+catch(const json_exception& e)
+{
+    std::cout << e.msg << '\n';
+}
+
+
+
+/*
     try
     {
         json j;
